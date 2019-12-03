@@ -1,5 +1,6 @@
 from mesa import Agent, Model
 from mesa.time import RandomActivation
+import networkx as nx
 
 
 class EvacuationAgent(Agent):
@@ -17,6 +18,7 @@ class EvacuationModel(Model):
     def __init__(self, num_agents):
         self.num_agents = num_agents
         self.schedule = RandomActivation(self)
+        self.G = nx.Graph()
         # Create agents
         for i in range(self.num_agents):
             a = EvacuationAgent(i, self)
