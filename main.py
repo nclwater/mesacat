@@ -8,6 +8,9 @@ class EvacuationAgent(Agent):
         super().__init__(unique_id, model)
         self.age = 25
 
+    def step(self):
+        pass
+
 
 class EvacuationModel(Model):
     """A model with some number of agents"""
@@ -22,8 +25,3 @@ class EvacuationModel(Model):
     def step(self):
         """Advance the model by one step."""
         self.schedule.step()
-
-
-if __name__ == '__main__':
-    model = EvacuationModel(10)
-    model.step()
