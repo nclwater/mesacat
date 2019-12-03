@@ -1,4 +1,8 @@
+channels:
+  - conda-forge
+
 dependencies:
+  - osmnx
   - pip:
       - mesa
       - matplotlib
