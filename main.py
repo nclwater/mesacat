@@ -13,12 +13,16 @@ class EvacuationModel(Model):
         self.schedule = RandomActivation(self)
         self.G: MultiDiGraph = osmnx.graph_from_file(osm_file)
         self.gdf = osmnx.save_load.graph_to_gdfs(self.G, nodes=False, node_geometry=False)
-        b = self.gdf.bounds
-        self.space = ContinuousSpace(x_max=b.maxx, x_min=b.minx, y_max=b.maxy, y_min=b.miny, torus=False)
+        minx, miny, maxx, maxy = self.gdf.geometry.total_bounds
+        self.space = ContinuousSpace(x_max=maxx, x_min=minx, y_max=maxy, y_min=miny, torus=False)
         # Create agents
         for i in range(self.num_agents):
             a = EvacuationAgent(i, self)
             self.schedule.add(a)
+
+            x = self.random.uniform(self.space.x_min, self.space.x_max)
+            y = self.random.uniform(self.space.y_min, self.space.y_max)
+            self.space.place_agent(a, (x, y))
 
     def step(self):
         """Advance the model by one step."""
@@ -34,5 +38,8 @@ class EvacuationAgent(Agent):
 
     def step(self):
         print(self.location)
+
+    def move(self):
+        pass
 
 
