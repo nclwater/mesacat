@@ -2,7 +2,7 @@ from mesa import Agent, Model
 from mesa.time import RandomActivation
 import osmnx
 from networkx import MultiDiGraph
-from mesa.space import ContinuousSpace
+from mesa.space import NetworkGrid
 
 
 class EvacuationModel(Model):
@@ -11,22 +11,23 @@ class EvacuationModel(Model):
         self._seed = seed
         self.num_agents = num_agents
         self.schedule = RandomActivation(self)
-        self.G: MultiDiGraph = osmnx.graph_from_file(osm_file)
-        self.gdf = osmnx.save_load.graph_to_gdfs(self.G, nodes=False, node_geometry=False)
-        minx, miny, maxx, maxy = self.gdf.geometry.total_bounds
-        self.space = ContinuousSpace(x_max=maxx, x_min=minx, y_max=maxy, y_min=miny, torus=False)
+        self.G: MultiDiGraph = osmnx.graph_from_file(osm_file, simplify=False)
+        self.nodes, self.edges = osmnx.save_load.graph_to_gdfs(self.G)
+        self.grid = NetworkGrid(self.G)
         # Create agents
         for i in range(self.num_agents):
             a = EvacuationAgent(i, self)
             self.schedule.add(a)
-
-            x = self.random.uniform(self.space.x_min, self.space.x_max)
-            y = self.random.uniform(self.space.y_min, self.space.y_max)
-            self.space.place_agent(a, (x, y))
+            node = self.random.choice(list(self.G.nodes))
+            self.grid.place_agent(a, node)
 
     def step(self):
         """Advance the model by one step."""
         self.schedule.step()
+        f, ax = osmnx.plot_graph(self.grid.G, show=False)
+        nodes = [a.pos for a in self.schedule.agents]
+        self.nodes.loc[nodes].plot(ax=ax)
+        f.show()
 
 
 class EvacuationAgent(Agent):
@@ -38,8 +39,10 @@ class EvacuationAgent(Agent):
 
     def step(self):
         print(self.location)
+        self.move()
 
     def move(self):
+        self.model.grid.move_agent(self, self.model.grid.get_neighbors(self.pos)[0])
         pass
 
 
