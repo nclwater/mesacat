@@ -2,6 +2,7 @@ from mesa import Agent, Model
 from mesa.time import RandomActivation
 import osmnx
 from networkx import MultiDiGraph
+from mesa.space import ContinuousSpace
 
 
 class EvacuationModel(Model):
@@ -11,6 +12,9 @@ class EvacuationModel(Model):
         self.num_agents = num_agents
         self.schedule = RandomActivation(self)
         self.G: MultiDiGraph = osmnx.graph_from_file(osm_file)
+        self.gdf = osmnx.save_load.graph_to_gdfs(self.G, nodes=False, node_geometry=False)
+        b = self.gdf.bounds
+        self.space = ContinuousSpace(x_max=b.maxx, x_min=b.minx, y_max=b.maxy, y_min=b.miny, torus=False)
         # Create agents
         for i in range(self.num_agents):
             a = EvacuationAgent(i, self)
@@ -26,6 +30,7 @@ class EvacuationAgent(Agent):
     def __init__(self, unique_id, model: EvacuationModel):
         super().__init__(unique_id, model)
         self.location = model.random.choice(list(model.G.nodes))
+        self.model = model
 
     def step(self):
         print(self.location)
