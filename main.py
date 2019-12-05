@@ -9,8 +9,9 @@ from networkx import shortest_path
 
 class EvacuationModel(Model):
     """A model with some number of agents"""
-    def __init__(self, num_agents, osm_file, target_node, seed=None):
+    def __init__(self, num_agents, osm_file, target_node, seed=None, interactive=False):
         self._seed = seed
+        self.interactive = interactive
         self.num_agents = num_agents
         self.schedule = RandomActivation(self)
         self.G: MultiDiGraph = osmnx.graph_from_file(osm_file, simplify=False)
@@ -25,9 +26,11 @@ class EvacuationModel(Model):
             a.update_route()
 
         self.f, self.ax = osmnx.plot_graph(self.grid.G, show=False)
+        self.f.set_dpi(200)
         nodes = [a.pos for a in self.schedule.agents]
         self.nodes.loc[nodes].plot(ax=self.ax, color='C1')
-        self.f.show()
+        if self.interactive:
+            self.f.show()
 
     def place_agent(self, agent):
         node = self.random.choice(list(self.G.nodes))
@@ -40,8 +43,10 @@ class EvacuationModel(Model):
         nodes = self.nodes.loc[[a.pos for a in self.schedule.agents]]
         self.ax.collections[-1].remove()
         nodes.plot(ax=self.ax, color='C1', alpha=0.2)
-        self.f.canvas.draw()
-        self.f.canvas.flush_events()
+        if self.interactive:
+            self.f.canvas.draw()
+            self.f.canvas.flush_events()
+
         # time.sleep(0.1)
 
 
