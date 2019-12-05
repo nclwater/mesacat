@@ -36,13 +36,13 @@ class EvacuationModel(Model):
         node = self.random.choice(list(self.G.nodes))
         self.grid.place_agent(agent, node)
 
-
     def step(self):
         """Advance the model by one step."""
         self.schedule.step()
         nodes = self.nodes.loc[[a.pos for a in self.schedule.agents]]
         self.ax.collections[-1].remove()
         nodes.plot(ax=self.ax, color='C1', alpha=0.2)
+        self.ax.set_title('Evacuated agents: {}'.format(len(self.grid.G.nodes[self.target_node]['agent'])))
         if self.interactive:
             self.f.canvas.draw()
             self.f.canvas.flush_events()
