@@ -1,5 +1,5 @@
 from main import EvacuationModel
 
-model = EvacuationModel(100, 'tests/sample_data/bwaise.osm', 1795721333)
-for _ in range(60):
+model = EvacuationModel(5000, 'tests/sample_data/bwaise_large.osm', 6621896336, seed=1)
+for _ in range(120):
     model.step()

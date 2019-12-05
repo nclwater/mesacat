@@ -4,7 +4,7 @@ import osmnx
 from networkx import MultiDiGraph
 from mesa.space import NetworkGrid
 from networkx import shortest_path
-import time
+# import time
 
 
 class EvacuationModel(Model):
@@ -21,8 +21,7 @@ class EvacuationModel(Model):
         for i in range(self.num_agents):
             a = EvacuationAgent(i, self)
             self.schedule.add(a)
-            node = self.random.choice(list(self.G.nodes))
-            self.grid.place_agent(a, node)
+            self.place_agent(a)
             a.update_route()
 
         self.f, self.ax = osmnx.plot_graph(self.grid.G, show=False)
@@ -30,16 +29,20 @@ class EvacuationModel(Model):
         self.nodes.loc[nodes].plot(ax=self.ax, color='C1')
         self.f.show()
 
+    def place_agent(self, agent):
+        node = self.random.choice(list(self.G.nodes))
+        self.grid.place_agent(agent, node)
+
 
     def step(self):
         """Advance the model by one step."""
         self.schedule.step()
         nodes = self.nodes.loc[[a.pos for a in self.schedule.agents]]
         self.ax.collections[-1].remove()
-        nodes.plot(ax=self.ax, color='C1')
+        nodes.plot(ax=self.ax, color='C1', alpha=0.2)
         self.f.canvas.draw()
         self.f.canvas.flush_events()
-        time.sleep(0.1)
+        # time.sleep(0.1)
 
 
 class EvacuationAgent(Agent):
@@ -51,7 +54,11 @@ class EvacuationAgent(Agent):
         self.route_index = 0
 
     def update_route(self):
-        self.route = shortest_path(self.model.G, self.pos, self.model.target_node)
+        try:
+            self.route = shortest_path(self.model.G, self.pos, self.model.target_node)
+        except:
+            self.model.place_agent(self)
+            self.update_route()
 
     def step(self):
         self.move()
