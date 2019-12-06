@@ -3,9 +3,14 @@ from mesa.time import RandomActivation
 import osmnx
 from networkx import MultiDiGraph
 from mesa.space import NetworkGrid
+from mesa.datacollection import DataCollector
 from networkx import shortest_path, NetworkXException
 from matplotlib import animation as manimation
 # import time
+
+
+def count_evacuated_agents(model):
+    return len(model.grid.G.nodes[model.target_node]['agent'])
 
 
 class EvacuationModel(Model):
@@ -30,6 +35,8 @@ class EvacuationModel(Model):
         self.f.set_dpi(200)
         nodes = [a.pos for a in self.schedule.agents]
         self.nodes.loc[nodes].plot(ax=self.ax, color='C1')
+        self.data_collector = DataCollector(model_reporters={'evacuated': count_evacuated_agents},
+                                            agent_reporters={'Position': 'pos'})
 
     def show(self):
         self.interactive = True
@@ -41,11 +48,12 @@ class EvacuationModel(Model):
 
     def step(self):
         """Advance the model by one step."""
+        self.data_collector.collect(self)
         self.schedule.step()
         nodes = self.nodes.loc[[a.pos for a in self.schedule.agents]]
         self.ax.collections[-1].remove()
         nodes.plot(ax=self.ax, color='C1', alpha=0.2)
-        self.ax.set_title('Evacuated agents: {}'.format(len(self.grid.G.nodes[self.target_node]['agent'])))
+        self.ax.set_title('Evacuated agents: {}'.format(count_evacuated_agents(self)))
         if self.interactive:
             self.f.canvas.draw()
             self.f.canvas.flush_events()
