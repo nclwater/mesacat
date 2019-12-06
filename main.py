@@ -3,15 +3,16 @@ from mesa.time import RandomActivation
 import osmnx
 from networkx import MultiDiGraph
 from mesa.space import NetworkGrid
-from networkx import shortest_path
+from networkx import shortest_path, NetworkXException
+from matplotlib import animation as manimation
 # import time
 
 
 class EvacuationModel(Model):
     """A model with some number of agents"""
-    def __init__(self, num_agents, osm_file, target_node, seed=None, interactive=False):
+    def __init__(self, num_agents, osm_file, target_node, seed=None):
         self._seed = seed
-        self.interactive = interactive
+        self.interactive = False
         self.num_agents = num_agents
         self.schedule = RandomActivation(self)
         self.G: MultiDiGraph = osmnx.graph_from_file(osm_file, simplify=False)
@@ -29,8 +30,10 @@ class EvacuationModel(Model):
         self.f.set_dpi(200)
         nodes = [a.pos for a in self.schedule.agents]
         self.nodes.loc[nodes].plot(ax=self.ax, color='C1')
-        if self.interactive:
-            self.f.show()
+
+    def show(self):
+        self.interactive = True
+        self.f.show()
 
     def place_agent(self, agent):
         node = self.random.choice(list(self.G.nodes))
@@ -49,6 +52,17 @@ class EvacuationModel(Model):
 
         # time.sleep(0.1)
 
+    def create_movie(self, path, steps=120, fps=5):
+        assert not self.interactive, 'Cannot create movie if interactive is True'
+        writer = manimation.writers['ffmpeg']
+        metadata = dict(title='Movie Test', artist='Matplotlib', comment='Movie support!')
+        writer = writer(fps=fps, metadata=metadata)
+
+        with writer.saving(self.f, path, self.f.dpi):
+            for _ in range(steps):
+                self.step()
+                writer.grab_frame()
+
 
 class EvacuationAgent(Agent):
     """A person with an age"""
@@ -61,7 +75,7 @@ class EvacuationAgent(Agent):
     def update_route(self):
         try:
             self.route = shortest_path(self.model.G, self.pos, self.model.target_node)
-        except:
+        except NetworkXException:
             self.model.place_agent(self)
             self.update_route()
 
@@ -73,5 +87,3 @@ class EvacuationAgent(Agent):
         if self.route_index < len(self.route):
             self.model.grid.move_agent(self, self.route[self.route_index])
         pass
-
-
