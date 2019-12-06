@@ -10,7 +10,7 @@ from matplotlib import animation as manimation
 
 class EvacuationModel(Model):
     """A model with some number of agents"""
-    def __init__(self, num_agents, osm_file, target_node, seed=None):
+    def __init__(self, num_agents, osm_file, target_node=None, seed=None):
         self._seed = seed
         self.interactive = False
         self.num_agents = num_agents
@@ -18,7 +18,7 @@ class EvacuationModel(Model):
         self.G: MultiDiGraph = osmnx.graph_from_file(osm_file, simplify=False)
         self.nodes, self.edges = osmnx.save_load.graph_to_gdfs(self.G)
         self.grid = NetworkGrid(self.G)
-        self.target_node = target_node
+        self.target_node = target_node if target_node is not None else self.random.choice(self.nodes.index)
         # Create agents
         for i in range(self.num_agents):
             a = EvacuationAgent(i, self)
