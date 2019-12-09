@@ -82,7 +82,7 @@ class EvacuationAgent(Agent):
 
     def update_route(self):
         try:
-            self.route = shortest_path(self.model.G, self.pos, self.model.target_node)
+            self.route = shortest_path(self.model.G, self.pos, self.model.target_node, 'length')
         except NetworkXException:
             self.model.place_agent(self)
             self.update_route()
