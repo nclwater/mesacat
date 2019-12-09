@@ -1,4 +1,4 @@
-from main import EvacuationModel
+from model import EvacuationModel
 from unittest import TestCase
 
 
