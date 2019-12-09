@@ -92,14 +92,27 @@ class EvacuationAgent(Agent):
     def step(self):
         self.move()
 
+    def distance_to_next_node(self):
+        return self.model.G.get_edge_data(
+            self.route[self.route_index], self.route[self.route_index+1])[0]['length'] - self.distance_along_edge
+
     def move(self):
         if self.route_index < len(self.route) - 1:
-            self.distance_along_edge += self.speed
-            length = self.model.G.get_edge_data(self.route[self.route_index], self.route[self.route_index+1])[0]['length']
 
-            if self.distance_along_edge >= length:
-                self.distance_along_edge -= length
+            distance_to_travel = self.speed
+
+            distance_to_next_node = self.distance_to_next_node()
+
+            while distance_to_travel >= distance_to_next_node:
+                self.distance_along_edge = 0
+                distance_to_travel -= distance_to_next_node
                 self.route_index += 1
-
                 self.model.grid.move_agent(self, self.route[self.route_index])
+
+                if self.route_index >= len(self.route) - 1:
+                    break
+
+                distance_to_next_node = self.distance_to_next_node()
+
+            self.distance_along_edge += distance_to_travel
 
