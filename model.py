@@ -79,6 +79,8 @@ class EvacuationAgent(Agent):
         self.model = model
         self.route = None
         self.route_index = 0
+        self.speed = 3  # km/h
+        self.distance_along_edge = 0
 
     def update_route(self):
         try:
@@ -91,7 +93,13 @@ class EvacuationAgent(Agent):
         self.move()
 
     def move(self):
-        self.route_index += 1
-        if self.route_index < len(self.route):
-            self.model.grid.move_agent(self, self.route[self.route_index])
-        pass
+        if self.route_index < len(self.route) - 1:
+            self.distance_along_edge += self.speed
+            length = self.model.G.get_edge_data(self.route[self.route_index], self.route[self.route_index+1])[0]['length']
+
+            if self.distance_along_edge >= length:
+                self.distance_along_edge -= length
+                self.route_index += 1
+
+                self.model.grid.move_agent(self, self.route[self.route_index])
+
