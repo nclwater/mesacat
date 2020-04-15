@@ -6,8 +6,6 @@ from mesa.space import NetworkGrid
 from mesa.datacollection import DataCollector
 from networkx import shortest_path, NetworkXException
 from matplotlib import animation as manimation
-# import time
-
 
 def count_evacuated_agents(model):
     return len(model.grid.G.nodes[model.target_node]['agent'])
@@ -17,7 +15,6 @@ class EvacuationModel(Model):
     """A model with some number of agents"""
     def __init__(self, num_agents, osm_file, target_node=None, seed=None):
         self._seed = seed
-        self.interactive = False
         self.num_agents = num_agents
         self.schedule = RandomActivation(self)
         self.G: MultiDiGraph = osmnx.graph_from_file(osm_file, simplify=False)
@@ -31,16 +28,8 @@ class EvacuationModel(Model):
             self.place_agent(a)
             a.update_route()
 
-        self.f, self.ax = osmnx.plot_graph(self.grid.G, show=False)
-        self.f.set_dpi(200)
-        nodes = [a.pos for a in self.schedule.agents]
-        self.nodes.loc[nodes].plot(ax=self.ax, color='C1')
         self.data_collector = DataCollector(model_reporters={'evacuated': count_evacuated_agents},
                                             agent_reporters={'Position': 'pos'})
-
-    def show(self):
-        self.interactive = True
-        self.f.show()
 
     def place_agent(self, agent):
         node = self.random.choice(list(self.G.nodes))
@@ -50,25 +39,29 @@ class EvacuationModel(Model):
         """Advance the model by one step."""
         self.data_collector.collect(self)
         self.schedule.step()
-        nodes = self.nodes.loc[[a.pos for a in self.schedule.agents]]
-        self.ax.collections[-1].remove()
-        nodes.plot(ax=self.ax, color='C1', alpha=0.2)
-        self.ax.set_title('Evacuated agents: {}'.format(count_evacuated_agents(self)))
-        if self.interactive:
-            self.f.canvas.draw()
-            self.f.canvas.flush_events()
 
-        # time.sleep(0.1)
+    def run(self, steps: int):
+        for _ in range(steps):
+            self.step()
 
-    def create_movie(self, path, steps=120, fps=5):
-        assert not self.interactive, 'Cannot create movie if interactive is True'
+        return self.data_collector.get_agent_vars_dataframe()
+
+    def create_movie(self, path, fps=5):
+
+        df = self.data_collector.get_agent_vars_dataframe()
+
         writer = manimation.writers['ffmpeg']
         metadata = dict(title='Movie Test', artist='Matplotlib', comment='Movie support!')
         writer = writer(fps=fps, metadata=metadata)
 
-        with writer.saving(self.f, path, self.f.dpi):
-            for _ in range(steps):
-                self.step()
+        f, ax = osmnx.plot_graph(self.grid.G, show=False, dpi=200, node_size=0)
+
+        with writer.saving(f, path, f.dpi):
+            for step in range(self.schedule.steps):
+                nodes = self.nodes.loc[df.loc[(step,), 'Position']]
+                if step > 0:
+                    ax.collections[-1].remove()
+                nodes.plot(ax=ax, color='C1', alpha=0.2)
                 writer.grab_frame()
 
 
@@ -115,5 +108,3 @@ class EvacuationAgent(Agent):
                 distance_to_next_node = self.distance_to_next_node()
 
             self.distance_along_edge += distance_to_travel
-
-
