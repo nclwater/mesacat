@@ -116,3 +116,4 @@ class EvacuationAgent(Agent):
 
             self.distance_along_edge += distance_to_travel
 
+
