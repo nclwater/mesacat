@@ -1,0 +1,203 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>Welcome to Mesacat’s documentation! &#8212; Mesacat  documentation</title>
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <script src="_static/language_data.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="welcome-to-mesacat-s-documentation">
+<h1>Welcome to Mesacat’s documentation!<a class="headerlink" href="#welcome-to-mesacat-s-documentation" title="Permalink to this headline">¶</a></h1>
+<div class="toctree-wrapper compound">
+</div>
+<span class="target" id="module-mesacat.model"></span><p>Contains the EvacuationModel class</p>
+<dl class="class">
+<dt id="mesacat.model.EvacuationModel">
+<em class="property">class </em><code class="sig-prename descclassname">mesacat.model.</code><code class="sig-name descname">EvacuationModel</code><span class="sig-paren">(</span><em class="sig-param">num_agents: int</em>, <em class="sig-param">osm_file: str</em>, <em class="sig-param">hazard: geopandas.geodataframe.GeoDataFrame</em>, <em class="sig-param">target_node: Optional[int] = None</em>, <em class="sig-param">seed: Optional[int] = None</em><span class="sig-paren">)</span><a class="headerlink" href="#mesacat.model.EvacuationModel" title="Permalink to this definition">¶</a></dt>
+<dd><p>A Mesa ABM model to simulate evacuation during a flood</p>
+<dl>
+<dt>Attributes:</dt><dd><p>num_agents: Number of agents to generate
+schedule: A RandomActivation scheduler which activates each agent once per step,</p>
+<blockquote>
+<div><p>in random order, with the order reshuffled every step</p>
+</div></blockquote>
+<p>G: A MultiDiGraph generated from OSM data
+nodes: A GeoDataFrame containing nodes in G
+edges: A GeoDataFrame containing edges in G
+grid: A NetworkGrid for agents to travel around
+target_node: Ths ID of the node to evacuate to
+data_collector: A DataCollector to store the model state at each time step</p>
+</dd>
+</dl>
+<dl class="method">
+<dt id="mesacat.model.EvacuationModel.create_movie">
+<code class="sig-name descname">create_movie</code><span class="sig-paren">(</span><em class="sig-param">path: str</em>, <em class="sig-param">fps: int = 5</em><span class="sig-paren">)</span><a class="headerlink" href="#mesacat.model.EvacuationModel.create_movie" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generates an MP4 video of all model steps using FFmpeg (<a class="reference external" href="https://www.ffmpeg.org/">https://www.ffmpeg.org/</a>)</p>
+<dl class="simple">
+<dt>Args:</dt><dd><p>path: path to create the MP4 file
+fps: frames per second of the video</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="mesacat.model.EvacuationModel.place_agent">
+<code class="sig-name descname">place_agent</code><span class="sig-paren">(</span><em class="sig-param">evacuation_agent: mesacat.agent.EvacuationAgent</em><span class="sig-paren">)</span><a class="headerlink" href="#mesacat.model.EvacuationModel.place_agent" title="Permalink to this definition">¶</a></dt>
+<dd><p>Positions an agent at a random node</p>
+<dl class="simple">
+<dt>Args:</dt><dd><p>evacuation_agent: The agent to move</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="mesacat.model.EvacuationModel.run">
+<code class="sig-name descname">run</code><span class="sig-paren">(</span><em class="sig-param">steps: int</em><span class="sig-paren">)</span><a class="headerlink" href="#mesacat.model.EvacuationModel.run" title="Permalink to this definition">¶</a></dt>
+<dd><p>Runs the model for the given number of steps</p>
+<dl class="simple">
+<dt>Args:</dt><dd><p>steps: number of steps to run the model for</p>
+</dd>
+<dt>Returns:</dt><dd><p>DataFrame: the agent vars dataframe</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="mesacat.model.EvacuationModel.step">
+<code class="sig-name descname">step</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#mesacat.model.EvacuationModel.step" title="Permalink to this definition">¶</a></dt>
+<dd><p>Stores the current state in data_collector and advances the model by one step</p>
+</dd></dl>
+
+</dd></dl>
+
+<span class="target" id="module-mesacat.agent"></span><dl class="class">
+<dt id="mesacat.agent.EvacuationAgent">
+<em class="property">class </em><code class="sig-prename descclassname">mesacat.agent.</code><code class="sig-name descname">EvacuationAgent</code><span class="sig-paren">(</span><em class="sig-param">unique_id: int</em>, <em class="sig-param">evacuation_model: mesacat.model.EvacuationModel</em><span class="sig-paren">)</span><a class="headerlink" href="#mesacat.agent.EvacuationAgent" title="Permalink to this definition">¶</a></dt>
+<dd><p>A person who is evacuating at a given speed</p>
+<dl class="simple">
+<dt>Attributes:</dt><dd><p>route: a list of node IDs that the agent is traversing
+route_index: the number of nodes that the agent has passed along the route
+speed: the speed at which the agent is travelling (km/hr)
+distance_along_edge: the distance that the agent has travelled from the most recent node
+pos: the ID of the most recent node that has been passed</p>
+</dd>
+</dl>
+<dl class="method">
+<dt id="mesacat.agent.EvacuationAgent.distance_to_next_node">
+<code class="sig-name descname">distance_to_next_node</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#mesacat.agent.EvacuationAgent.distance_to_next_node" title="Permalink to this definition">¶</a></dt>
+<dd><p>Finds the distance to the next node along the route</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="mesacat.agent.EvacuationAgent.step">
+<code class="sig-name descname">step</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#mesacat.agent.EvacuationAgent.step" title="Permalink to this definition">¶</a></dt>
+<dd><p>Moves the agent towards the target node by 1 hour</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="mesacat.agent.EvacuationAgent.update_route">
+<code class="sig-name descname">update_route</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#mesacat.agent.EvacuationAgent.update_route" title="Permalink to this definition">¶</a></dt>
+<dd><p>Updates the agent’s route to the target node
+If there are no routes available, the agent is randomly placed at a different node until a route can be found</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="indices-and-tables">
+<h1>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Permalink to this headline">¶</a></h1>
+<ul class="simple">
+<li><p><a class="reference internal" href="genindex.html"><span class="std std-ref">Index</span></a></p></li>
+<li><p><a class="reference internal" href="py-modindex.html"><span class="std std-ref">Module Index</span></a></p></li>
+<li><p><a class="reference internal" href="search.html"><span class="std std-ref">Search Page</span></a></p></li>
+</ul>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="#">Mesacat</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="#">Documentation overview</a><ul>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2020, Fergus McClean.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.4.4</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="_sources/index.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>
