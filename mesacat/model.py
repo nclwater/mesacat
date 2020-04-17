@@ -1,56 +1,99 @@
-from mesa import Agent, Model
+from __future__ import annotations
+from mesa import Model
 from mesa.time import RandomActivation
 import osmnx
 from networkx import MultiDiGraph
 from mesa.space import NetworkGrid
 from mesa.datacollection import DataCollector
-from networkx import shortest_path, NetworkXException
-from matplotlib import animation as manimation
-
-def count_evacuated_agents(model):
-    return len(model.grid.G.nodes[model.target_node]['agent'])
+from matplotlib import animation
+import geopandas as gpd
+from . import agent
 
 
 class EvacuationModel(Model):
-    """A model with some number of agents"""
-    def __init__(self, num_agents, osm_file, target_node=None, seed=None):
+    """A Mesa ABM model to simulate evacuation during a flood
+
+    Attributes:
+        num_agents: Number of agents to generate
+        schedule: A RandomActivation scheduler which activates each agent once per step,
+            in random order, with the order reshuffled every step
+        G: A MultiDiGraph generated from OSM data
+        nodes: A GeoDataFrame containing nodes in G
+        edges: A GeoDataFrame containing edges in G
+        grid: A NetworkGrid for agents to travel around
+        target_node: Ths ID of the node to evacuate to
+        data_collector: A DataCollector to store the model state at each time step
+    """
+    def __init__(self, num_agents: int, osm_file: str, hazard: gpd.GeoDataFrame, target_node: int = None,
+                 seed: int = None):
+        """
+        Args:
+            num_agents: Number of agents to generate
+            osm_file: Path to an OpenStreetMap XML file (.osm)
+            hazard: A GeoDataFrame containing geometries representing flood hazard zones
+            target_node: Ths ID of the node to evacuate to
+            seed: Seed value for random number generation
+        """
+        super().__init__()
         self._seed = seed
+        self.hazard = hazard
         self.num_agents = num_agents
         self.schedule = RandomActivation(self)
         self.G: MultiDiGraph = osmnx.graph_from_file(osm_file, simplify=False)
+        self.nodes: gpd.GeoDataFrame
+        self.edges: gpd.GeoDataFrame
         self.nodes, self.edges = osmnx.save_load.graph_to_gdfs(self.G)
         self.grid = NetworkGrid(self.G)
         self.target_node = target_node if target_node is not None else self.random.choice(self.nodes.index)
         # Create agents
         for i in range(self.num_agents):
-            a = EvacuationAgent(i, self)
+            a = agent.EvacuationAgent(i, self)
             self.schedule.add(a)
             self.place_agent(a)
             a.update_route()
 
-        self.data_collector = DataCollector(model_reporters={'evacuated': count_evacuated_agents},
-                                            agent_reporters={'Position': 'pos'})
+        self.data_collector = DataCollector(
+            model_reporters={'evacuated': lambda x: len(x.grid.G.nodes[x.target_node]['agent'])},
+            agent_reporters={'Position': 'pos'})
 
-    def place_agent(self, agent):
+    def place_agent(self, evacuation_agent: agent.EvacuationAgent):
+        """Positions an agent at a random node
+
+        Args:
+            evacuation_agent: The agent to move
+        """
         node = self.random.choice(list(self.G.nodes))
-        self.grid.place_agent(agent, node)
+        self.grid.place_agent(evacuation_agent, node)
 
     def step(self):
-        """Advance the model by one step."""
+        """Stores the current state in data_collector and advances the model by one step"""
         self.data_collector.collect(self)
         self.schedule.step()
 
     def run(self, steps: int):
+        """Runs the model for the given number of steps
+
+        Args:
+            steps: number of steps to run the model for
+        Returns:
+            DataFrame: the agent vars dataframe
+        """
         for _ in range(steps):
             self.step()
 
         return self.data_collector.get_agent_vars_dataframe()
 
-    def create_movie(self, path, fps=5):
+    def create_movie(self, path: str, fps: int = 5):
+        """Generates an MP4 video of all model steps using FFmpeg (https://www.ffmpeg.org/)
+
+        Args:
+            path: path to create the MP4 file
+            fps: frames per second of the video
+        """
 
         df = self.data_collector.get_agent_vars_dataframe()
 
-        writer = manimation.writers['ffmpeg']
+        writer = animation.writers['ffmpeg']
         metadata = dict(title='Movie Test', artist='Matplotlib', comment='Movie support!')
         writer = writer(fps=fps, metadata=metadata)
 
@@ -65,46 +108,4 @@ class EvacuationModel(Model):
                 writer.grab_frame()
 
 
-class EvacuationAgent(Agent):
-    """A person with an age"""
-    def __init__(self, unique_id, model: EvacuationModel):
-        super().__init__(unique_id, model)
-        self.model = model
-        self.route = None
-        self.route_index = 0
-        self.speed = 3  # km/h
-        self.distance_along_edge = 0
 
-    def update_route(self):
-        try:
-            self.route = shortest_path(self.model.G, self.pos, self.model.target_node, 'length')
-        except NetworkXException:
-            self.model.place_agent(self)
-            self.update_route()
-
-    def step(self):
-        self.move()
-
-    def distance_to_next_node(self):
-        return self.model.G.get_edge_data(
-            self.route[self.route_index], self.route[self.route_index+1])[0]['length'] - self.distance_along_edge
-
-    def move(self):
-        if self.route_index < len(self.route) - 1:
-
-            distance_to_travel = self.speed
-
-            distance_to_next_node = self.distance_to_next_node()
-
-            while distance_to_travel >= distance_to_next_node:
-                self.distance_along_edge = 0
-                distance_to_travel -= distance_to_next_node
-                self.route_index += 1
-                self.model.grid.move_agent(self, self.route[self.route_index])
-
-                if self.route_index >= len(self.route) - 1:
-                    break
-
-                distance_to_next_node = self.distance_to_next_node()
-
-            self.distance_along_edge += distance_to_travel
