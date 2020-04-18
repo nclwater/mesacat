@@ -4,7 +4,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <meta charset="utf-8" />
-    <title>Welcome to Mesacat’s documentation! &#8212; Mesacat  documentation</title>
+    <title>Mesacat Documentation &#8212; Mesacat  documentation</title>
     <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
@@ -30,97 +30,250 @@
 
           <div class="body" role="main">
             
-  <div class="section" id="welcome-to-mesacat-s-documentation">
-<h1>Welcome to Mesacat’s documentation!<a class="headerlink" href="#welcome-to-mesacat-s-documentation" title="Permalink to this headline">¶</a></h1>
+  <div class="section" id="mesacat-documentation">
+<h1>Mesacat Documentation<a class="headerlink" href="#mesacat-documentation" title="Permalink to this headline">¶</a></h1>
 <div class="toctree-wrapper compound">
 </div>
-<span class="target" id="module-mesacat.model"></span><p>Contains the EvacuationModel class</p>
+<div class="section" id="module-mesacat">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-mesacat" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
-<dt id="mesacat.model.EvacuationModel">
-<em class="property">class </em><code class="sig-prename descclassname">mesacat.model.</code><code class="sig-name descname">EvacuationModel</code><span class="sig-paren">(</span><em class="sig-param">num_agents: int</em>, <em class="sig-param">osm_file: str</em>, <em class="sig-param">hazard: geopandas.geodataframe.GeoDataFrame</em>, <em class="sig-param">target_node: Optional[int] = None</em>, <em class="sig-param">seed: Optional[int] = None</em><span class="sig-paren">)</span><a class="headerlink" href="#mesacat.model.EvacuationModel" title="Permalink to this definition">¶</a></dt>
-<dd><p>A Mesa ABM model to simulate evacuation during a flood</p>
-<dl>
-<dt>Attributes:</dt><dd><p>num_agents: Number of agents to generate
-schedule: A RandomActivation scheduler which activates each agent once per step,</p>
-<blockquote>
-<div><p>in random order, with the order reshuffled every step</p>
-</div></blockquote>
-<p>G: A MultiDiGraph generated from OSM data
-nodes: A GeoDataFrame containing nodes in G
-edges: A GeoDataFrame containing edges in G
-grid: A NetworkGrid for agents to travel around
-target_node: Ths ID of the node to evacuate to
-data_collector: A DataCollector to store the model state at each time step</p>
+<dt id="mesacat.EvacuationModel">
+<em class="property">class </em><code class="sig-prename descclassname">mesacat.</code><code class="sig-name descname">EvacuationModel</code><span class="sig-paren">(</span><em class="sig-param">num_agents</em>, <em class="sig-param">osm_file</em>, <em class="sig-param">hazard</em>, <em class="sig-param">target_node=None</em>, <em class="sig-param">seed=None</em><span class="sig-paren">)</span><a class="headerlink" href="#mesacat.EvacuationModel" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">mesa.model.Model</span></code></p>
+<p>A Mesa ABM model to simulate evacuation during a flood</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>num_agents</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – Number of agents to generate</p></li>
+<li><p><strong>osm_file</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>) – Path to an OpenStreetMap XML file (.osm)</p></li>
+<li><p><strong>hazard</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">GeoDataFrame</span></code>) – A GeoDataFrame containing geometries representing flood hazard zones</p></li>
+<li><p><strong>target_node</strong> (<code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>]) – Ths ID of the node to evacuate to, if not specified will be chosen randomly</p></li>
+<li><p><strong>seed</strong> (<code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>]) – Seed value for random number generation</p></li>
+</ul>
 </dd>
 </dl>
+<dl class="attribute">
+<dt id="mesacat.EvacuationModel.num_agents">
+<code class="sig-name descname">num_agents</code><a class="headerlink" href="#mesacat.EvacuationModel.num_agents" title="Permalink to this definition">¶</a></dt>
+<dd><p>Number of agents to generate</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p>int</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="mesacat.EvacuationModel.schedule">
+<code class="sig-name descname">schedule</code><a class="headerlink" href="#mesacat.EvacuationModel.schedule" title="Permalink to this definition">¶</a></dt>
+<dd><p>A RandomActivation scheduler which activates each agent once per step,
+in random order, with the order reshuffled every step</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p>RandomActivation</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="mesacat.EvacuationModel.G">
+<code class="sig-name descname">G</code><a class="headerlink" href="#mesacat.EvacuationModel.G" title="Permalink to this definition">¶</a></dt>
+<dd><p>A MultiDiGraph generated from OSM data</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p>MultiDiGraph</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="mesacat.EvacuationModel.nodes">
+<code class="sig-name descname">nodes</code><a class="headerlink" href="#mesacat.EvacuationModel.nodes" title="Permalink to this definition">¶</a></dt>
+<dd><p>A GeoDataFrame containing nodes in G</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p>GeoDataFrame</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="mesacat.EvacuationModel.edges">
+<code class="sig-name descname">edges</code><a class="headerlink" href="#mesacat.EvacuationModel.edges" title="Permalink to this definition">¶</a></dt>
+<dd><p>A GeoDataFrame containing edges in G</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p>GeoDataFrame</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="mesacat.EvacuationModel.grid">
+<code class="sig-name descname">grid</code><a class="headerlink" href="#mesacat.EvacuationModel.grid" title="Permalink to this definition">¶</a></dt>
+<dd><p>A NetworkGrid for agents to travel around</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p>NetworkGrid</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="mesacat.EvacuationModel.target_node">
+<code class="sig-name descname">target_node</code><a class="headerlink" href="#mesacat.EvacuationModel.target_node" title="Permalink to this definition">¶</a></dt>
+<dd><p>Ths ID of the node to evacuate to</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p>int</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="mesacat.EvacuationModel.data_collector">
+<code class="sig-name descname">data_collector</code><a class="headerlink" href="#mesacat.EvacuationModel.data_collector" title="Permalink to this definition">¶</a></dt>
+<dd><p>A DataCollector to store the model state at each time step</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p>DataCollector</p>
+</dd>
+</dl>
+</dd></dl>
+
 <dl class="method">
-<dt id="mesacat.model.EvacuationModel.create_movie">
-<code class="sig-name descname">create_movie</code><span class="sig-paren">(</span><em class="sig-param">path: str</em>, <em class="sig-param">fps: int = 5</em><span class="sig-paren">)</span><a class="headerlink" href="#mesacat.model.EvacuationModel.create_movie" title="Permalink to this definition">¶</a></dt>
+<dt id="mesacat.EvacuationModel.create_movie">
+<code class="sig-name descname">create_movie</code><span class="sig-paren">(</span><em class="sig-param">path</em>, <em class="sig-param">fps=5</em><span class="sig-paren">)</span><a class="headerlink" href="#mesacat.EvacuationModel.create_movie" title="Permalink to this definition">¶</a></dt>
 <dd><p>Generates an MP4 video of all model steps using FFmpeg (<a class="reference external" href="https://www.ffmpeg.org/">https://www.ffmpeg.org/</a>)</p>
-<dl class="simple">
-<dt>Args:</dt><dd><p>path: path to create the MP4 file
-fps: frames per second of the video</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>path</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>) – path to create the MP4 file</p></li>
+<li><p><strong>fps</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – frames per second of the video</p></li>
+</ul>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="method">
-<dt id="mesacat.model.EvacuationModel.place_agent">
-<code class="sig-name descname">place_agent</code><span class="sig-paren">(</span><em class="sig-param">evacuation_agent: mesacat.agent.EvacuationAgent</em><span class="sig-paren">)</span><a class="headerlink" href="#mesacat.model.EvacuationModel.place_agent" title="Permalink to this definition">¶</a></dt>
+<dt id="mesacat.EvacuationModel.place_agent">
+<code class="sig-name descname">place_agent</code><span class="sig-paren">(</span><em class="sig-param">evacuation_agent</em><span class="sig-paren">)</span><a class="headerlink" href="#mesacat.EvacuationModel.place_agent" title="Permalink to this definition">¶</a></dt>
 <dd><p>Positions an agent at a random node</p>
-<dl class="simple">
-<dt>Args:</dt><dd><p>evacuation_agent: The agent to move</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>evacuation_agent</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">EvacuationAgent</span></code>) – The agent to move</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="method">
-<dt id="mesacat.model.EvacuationModel.run">
-<code class="sig-name descname">run</code><span class="sig-paren">(</span><em class="sig-param">steps: int</em><span class="sig-paren">)</span><a class="headerlink" href="#mesacat.model.EvacuationModel.run" title="Permalink to this definition">¶</a></dt>
+<dt id="mesacat.EvacuationModel.run">
+<code class="sig-name descname">run</code><span class="sig-paren">(</span><em class="sig-param">steps</em><span class="sig-paren">)</span><a class="headerlink" href="#mesacat.EvacuationModel.run" title="Permalink to this definition">¶</a></dt>
 <dd><p>Runs the model for the given number of steps</p>
-<dl class="simple">
-<dt>Args:</dt><dd><p>steps: number of steps to run the model for</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>steps</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – number of steps to run the model for</p>
 </dd>
-<dt>Returns:</dt><dd><p>DataFrame: the agent vars dataframe</p>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>the agent vars dataframe</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>DataFrame</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="method">
-<dt id="mesacat.model.EvacuationModel.step">
-<code class="sig-name descname">step</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#mesacat.model.EvacuationModel.step" title="Permalink to this definition">¶</a></dt>
+<dt id="mesacat.EvacuationModel.step">
+<code class="sig-name descname">step</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#mesacat.EvacuationModel.step" title="Permalink to this definition">¶</a></dt>
 <dd><p>Stores the current state in data_collector and advances the model by one step</p>
 </dd></dl>
 
 </dd></dl>
 
-<span class="target" id="module-mesacat.agent"></span><dl class="class">
-<dt id="mesacat.agent.EvacuationAgent">
-<em class="property">class </em><code class="sig-prename descclassname">mesacat.agent.</code><code class="sig-name descname">EvacuationAgent</code><span class="sig-paren">(</span><em class="sig-param">unique_id: int</em>, <em class="sig-param">evacuation_model: mesacat.model.EvacuationModel</em><span class="sig-paren">)</span><a class="headerlink" href="#mesacat.agent.EvacuationAgent" title="Permalink to this definition">¶</a></dt>
-<dd><p>A person who is evacuating at a given speed</p>
-<dl class="simple">
-<dt>Attributes:</dt><dd><p>route: a list of node IDs that the agent is traversing
-route_index: the number of nodes that the agent has passed along the route
-speed: the speed at which the agent is travelling (km/hr)
-distance_along_edge: the distance that the agent has travelled from the most recent node
-pos: the ID of the most recent node that has been passed</p>
+<dl class="class">
+<dt id="mesacat.EvacuationAgent">
+<em class="property">class </em><code class="sig-prename descclassname">mesacat.</code><code class="sig-name descname">EvacuationAgent</code><span class="sig-paren">(</span><em class="sig-param">unique_id</em>, <em class="sig-param">evacuation_model</em><span class="sig-paren">)</span><a class="headerlink" href="#mesacat.EvacuationAgent" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">mesa.agent.Agent</span></code></p>
+<p>A person who is evacuating at a given speed</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>unique_id</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – an identifier for the agent</p></li>
+<li><p><strong>evacuation_model</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">EvacuationModel</span></code>) – the parent EvacuationModel</p></li>
+</ul>
 </dd>
 </dl>
+<dl class="attribute">
+<dt id="mesacat.EvacuationAgent.route">
+<code class="sig-name descname">route</code><a class="headerlink" href="#mesacat.EvacuationAgent.route" title="Permalink to this definition">¶</a></dt>
+<dd><p>a list of node IDs that the agent is traversing</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p>typing.List[int]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="mesacat.EvacuationAgent.route_index">
+<code class="sig-name descname">route_index</code><a class="headerlink" href="#mesacat.EvacuationAgent.route_index" title="Permalink to this definition">¶</a></dt>
+<dd><p>the number of nodes that the agent has passed along the route</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p>int</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="mesacat.EvacuationAgent.speed">
+<code class="sig-name descname">speed</code><a class="headerlink" href="#mesacat.EvacuationAgent.speed" title="Permalink to this definition">¶</a></dt>
+<dd><p>the speed at which the agent is travelling (km/hr)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="mesacat.EvacuationAgent.distance_along_edge">
+<code class="sig-name descname">distance_along_edge</code><a class="headerlink" href="#mesacat.EvacuationAgent.distance_along_edge" title="Permalink to this definition">¶</a></dt>
+<dd><p>the distance that the agent has travelled from the most recent node</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="mesacat.EvacuationAgent.pos">
+<code class="sig-name descname">pos</code><a class="headerlink" href="#mesacat.EvacuationAgent.pos" title="Permalink to this definition">¶</a></dt>
+<dd><p>the ID of the most recent node that has been passed</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p>int</p>
+</dd>
+</dl>
+</dd></dl>
+
 <dl class="method">
-<dt id="mesacat.agent.EvacuationAgent.distance_to_next_node">
-<code class="sig-name descname">distance_to_next_node</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#mesacat.agent.EvacuationAgent.distance_to_next_node" title="Permalink to this definition">¶</a></dt>
+<dt id="mesacat.EvacuationAgent.distance_to_next_node">
+<code class="sig-name descname">distance_to_next_node</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#mesacat.EvacuationAgent.distance_to_next_node" title="Permalink to this definition">¶</a></dt>
 <dd><p>Finds the distance to the next node along the route</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="mesacat.agent.EvacuationAgent.step">
-<code class="sig-name descname">step</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#mesacat.agent.EvacuationAgent.step" title="Permalink to this definition">¶</a></dt>
+<dt id="mesacat.EvacuationAgent.step">
+<code class="sig-name descname">step</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#mesacat.EvacuationAgent.step" title="Permalink to this definition">¶</a></dt>
 <dd><p>Moves the agent towards the target node by 1 hour</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="mesacat.agent.EvacuationAgent.update_route">
-<code class="sig-name descname">update_route</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#mesacat.agent.EvacuationAgent.update_route" title="Permalink to this definition">¶</a></dt>
+<dt id="mesacat.EvacuationAgent.update_route">
+<code class="sig-name descname">update_route</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#mesacat.EvacuationAgent.update_route" title="Permalink to this definition">¶</a></dt>
 <dd><p>Updates the agent’s route to the target node
 If there are no routes available, the agent is randomly placed at a different node until a route can be found</p>
 </dd></dl>
@@ -129,12 +282,13 @@ If there are no routes available, the agent is randomly placed at a different no
 
 </div>
 <div class="section" id="indices-and-tables">
-<h1>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Permalink to this headline">¶</a></h1>
+<h2>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Permalink to this headline">¶</a></h2>
 <ul class="simple">
 <li><p><a class="reference internal" href="genindex.html"><span class="std std-ref">Index</span></a></p></li>
 <li><p><a class="reference internal" href="py-modindex.html"><span class="std std-ref">Module Index</span></a></p></li>
 <li><p><a class="reference internal" href="search.html"><span class="std std-ref">Search Page</span></a></p></li>
 </ul>
+</div>
 </div>
 
 

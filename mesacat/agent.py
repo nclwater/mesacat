@@ -8,25 +8,24 @@ import typing
 class EvacuationAgent(Agent):
     """A person who is evacuating at a given speed
 
+    Args:
+        unique_id: an identifier for the agent
+        evacuation_model: the parent EvacuationModel
+
     Attributes:
-        route: a list of node IDs that the agent is traversing
-        route_index: the number of nodes that the agent has passed along the route
-        speed: the speed at which the agent is travelling (km/hr)
-        distance_along_edge: the distance that the agent has travelled from the most recent node
-        pos: the ID of the most recent node that has been passed
+        route (typing.List[int]): a list of node IDs that the agent is traversing
+        route_index (int): the number of nodes that the agent has passed along the route
+        speed (float): the speed at which the agent is travelling (km/hr)
+        distance_along_edge (float): the distance that the agent has travelled from the most recent node
+        pos (int): the ID of the most recent node that has been passed
     """
     def __init__(self, unique_id: int, evacuation_model: model.EvacuationModel):
-        """
-        Args:
-            unique_id: an identifier for the agent
-            evacuation_model: the parent EvacuationModel
-        """
         super().__init__(unique_id, evacuation_model)
-        self.route: typing.List[int] = []
-        self.route_index: int = 0
-        self.speed: float = 3
+        self.route = []
+        self.route_index = 0
+        self.speed = 3
         self.distance_along_edge = 0
-        self.pos: int = 0
+        self.pos = 0
 
     def update_route(self):
         """Updates the agent's route to the target node

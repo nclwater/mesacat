@@ -3,23 +3,24 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to Mesacat's documentation!
+Mesacat Documentation
 ===================================
 
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
 
-.. automodule:: mesacat.model
-   :members:
+Module contents
+---------------
 
-.. automodule:: mesacat.agent
+.. automodule:: mesacat
    :members:
-
+   :undoc-members:
+   :show-inheritance:
 
 
 Indices and tables
-==================
+------------------
 
 * :ref:`genindex`
 * :ref:`modindex`
