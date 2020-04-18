@@ -6,7 +6,7 @@ from networkx import MultiDiGraph
 from mesa.space import NetworkGrid
 from mesa.datacollection import DataCollector
 from matplotlib import animation
-from geopandas import GeoDataFrame
+from geopandas import GeoDataFrame, sjoin
 from typing import Optional
 from . import agent
 
@@ -17,7 +17,7 @@ class EvacuationModel(Model):
     Args:
         num_agents: Number of agents to generate
         osm_file: Path to an OpenStreetMap XML file (.osm)
-        hazard: A GeoDataFrame containing geometries representing flood hazard zones
+        hazard: A GeoDataFrame containing geometries representing flood hazard zones in WGS84
         target_node: Ths ID of the node to evacuate to, if not specified will be chosen randomly
         seed: Seed value for random number generation
 
@@ -40,8 +40,16 @@ class EvacuationModel(Model):
         self.hazard = hazard
         self.num_agents = num_agents
         self.schedule = RandomActivation(self)
-        self.G = osmnx.graph_from_file(osm_file, simplify=False)
+        self.G: MultiDiGraph = osmnx.graph_from_file(osm_file, simplify=False)
         self.nodes, self.edges = osmnx.save_load.graph_to_gdfs(self.G)
+
+        # Prevents warning about CRS not being the same
+        self.hazard.crs = self.edges.crs
+
+        nodes_to_drop: GeoDataFrame = sjoin(self.edges, hazard)
+
+        self.G.remove_edges_from(nodes_to_drop[['u', 'v']].to_numpy())
+
         self.grid = NetworkGrid(self.G)
         self.target_node = target_node if target_node is not None else self.random.choice(self.nodes.index)
         # Create agents
