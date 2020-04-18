@@ -1,7 +1,7 @@
 from __future__ import annotations
 from . import model
 from mesa import Agent
-from networkx import shortest_path, NetworkXException
+from networkx import shortest_path
 import typing
 
 
@@ -28,14 +28,8 @@ class EvacuationAgent(Agent):
         self.pos = 0
 
     def update_route(self):
-        """Updates the agent's route to the target node
-        If there are no routes available, the agent is randomly placed at a different node until a route can be found
-        """
-        try:
-            self.route = shortest_path(self.model.G, self.pos, self.model.target_node, 'length')
-        except NetworkXException:
-            self.model.place_agent(self)
-            self.update_route()
+        """Updates the agent's route to the target node"""
+        self.route = shortest_path(self.model.G, self.pos, self.model.target_node, 'length')
 
     def distance_to_next_node(self):
         """Finds the distance to the next node along the route"""

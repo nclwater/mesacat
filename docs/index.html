@@ -38,15 +38,17 @@
 <span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-mesacat" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
 <dt id="mesacat.EvacuationModel">
-<em class="property">class </em><code class="sig-prename descclassname">mesacat.</code><code class="sig-name descname">EvacuationModel</code><span class="sig-paren">(</span><em class="sig-param">num_agents</em>, <em class="sig-param">osm_file</em>, <em class="sig-param">hazard</em>, <em class="sig-param">target_node=None</em>, <em class="sig-param">seed=None</em><span class="sig-paren">)</span><a class="headerlink" href="#mesacat.EvacuationModel" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">mesacat.</code><code class="sig-name descname">EvacuationModel</code><span class="sig-paren">(</span><em class="sig-param">osm_file</em>, <em class="sig-param">hazard</em>, <em class="sig-param">agent_locations</em>, <em class="sig-param">target_node=None</em>, <em class="sig-param">seed=None</em><span class="sig-paren">)</span><a class="headerlink" href="#mesacat.EvacuationModel" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">mesa.model.Model</span></code></p>
 <p>A Mesa ABM model to simulate evacuation during a flood</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>num_agents</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – Number of agents to generate</p></li>
+<li><p><strong>num_agents</strong> – Number of agents to generate</p></li>
 <li><p><strong>osm_file</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>) – Path to an OpenStreetMap XML file (.osm)</p></li>
-<li><p><strong>hazard</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">GeoDataFrame</span></code>) – A GeoDataFrame containing geometries representing flood hazard zones</p></li>
+<li><p><strong>hazard</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">GeoDataFrame</span></code>) – A GeoDataFrame containing geometries representing flood hazard zones in WGS84</p></li>
+<li><p><strong>agent_locations</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">GeoDataFrame</span></code>) – A GeoDataFrame of agent starting locations, agents will be placed at the nearest node
+Agents located outside the hazard zone will dropped</p></li>
 <li><p><strong>target_node</strong> (<code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>]) – Ths ID of the node to evacuate to, if not specified will be chosen randomly</p></li>
 <li><p><strong>seed</strong> (<code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>]) – Seed value for random number generation</p></li>
 </ul>
@@ -71,6 +73,40 @@ in random order, with the order reshuffled every step</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type</dt>
 <dd class="field-odd"><p>RandomActivation</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="mesacat.EvacuationModel.osm_file">
+<code class="sig-name descname">osm_file</code><a class="headerlink" href="#mesacat.EvacuationModel.osm_file" title="Permalink to this definition">¶</a></dt>
+<dd><p>Path to an OpenStreetMap XML file (.osm)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="mesacat.EvacuationModel.hazard">
+<code class="sig-name descname">hazard</code><a class="headerlink" href="#mesacat.EvacuationModel.hazard" title="Permalink to this definition">¶</a></dt>
+<dd><p>A GeoDataFrame containing geometries representing flood hazard zones in WGS84</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p>GeoDataFrame</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="mesacat.EvacuationModel.agent_locations">
+<code class="sig-name descname">agent_locations</code><a class="headerlink" href="#mesacat.EvacuationModel.agent_locations" title="Permalink to this definition">¶</a></dt>
+<dd><p>A GeoDataFrame of agent starting locations, agents will be placed at the nearest node
+Agents located outside the hazard zone will dropped</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p>GeoDataFrame</p>
 </dd>
 </dl>
 </dd></dl>
@@ -151,17 +187,6 @@ in random order, with the order reshuffled every step</p>
 <li><p><strong>path</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>) – path to create the MP4 file</p></li>
 <li><p><strong>fps</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – frames per second of the video</p></li>
 </ul>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="method">
-<dt id="mesacat.EvacuationModel.place_agent">
-<code class="sig-name descname">place_agent</code><span class="sig-paren">(</span><em class="sig-param">evacuation_agent</em><span class="sig-paren">)</span><a class="headerlink" href="#mesacat.EvacuationModel.place_agent" title="Permalink to this definition">¶</a></dt>
-<dd><p>Positions an agent at a random node</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>evacuation_agent</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">EvacuationAgent</span></code>) – The agent to move</p>
 </dd>
 </dl>
 </dd></dl>
@@ -274,8 +299,7 @@ in random order, with the order reshuffled every step</p>
 <dl class="method">
 <dt id="mesacat.EvacuationAgent.update_route">
 <code class="sig-name descname">update_route</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#mesacat.EvacuationAgent.update_route" title="Permalink to this definition">¶</a></dt>
-<dd><p>Updates the agent’s route to the target node
-If there are no routes available, the agent is randomly placed at a different node until a route can be found</p>
+<dd><p>Updates the agent’s route to the target node</p>
 </dd></dl>
 
 </dd></dl>

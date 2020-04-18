@@ -6,9 +6,11 @@ from networkx import MultiDiGraph
 from mesa.space import NetworkGrid
 from mesa.datacollection import DataCollector
 from matplotlib import animation
-from geopandas import GeoDataFrame, sjoin
+from geopandas import GeoDataFrame, GeoDataFrame, sjoin
 from typing import Optional
 from . import agent
+from scipy.spatial import cKDTree
+import numpy as np
 
 
 class EvacuationModel(Model):
@@ -18,6 +20,8 @@ class EvacuationModel(Model):
         num_agents: Number of agents to generate
         osm_file: Path to an OpenStreetMap XML file (.osm)
         hazard: A GeoDataFrame containing geometries representing flood hazard zones in WGS84
+        agent_locations: A GeoDataFrame of agent starting locations, agents will be placed at the nearest node
+            Agents located outside the hazard zone will dropped
         target_node: Ths ID of the node to evacuate to, if not specified will be chosen randomly
         seed: Seed value for random number generation
 
@@ -25,6 +29,10 @@ class EvacuationModel(Model):
         num_agents (int): Number of agents to generate
         schedule (RandomActivation): A RandomActivation scheduler which activates each agent once per step,
             in random order, with the order reshuffled every step
+        osm_file (str): Path to an OpenStreetMap XML file (.osm)
+        hazard (GeoDataFrame): A GeoDataFrame containing geometries representing flood hazard zones in WGS84
+        agent_locations (GeoDataFrame): A GeoDataFrame of agent starting locations, agents will be placed at the nearest node
+            Agents located outside the hazard zone will dropped
         G (MultiDiGraph): A MultiDiGraph generated from OSM data
         nodes (GeoDataFrame): A GeoDataFrame containing nodes in G
         edges (GeoDataFrame): A GeoDataFrame containing edges in G
@@ -32,45 +40,41 @@ class EvacuationModel(Model):
         target_node (int): Ths ID of the node to evacuate to
         data_collector (DataCollector): A DataCollector to store the model state at each time step
     """
-    def __init__(self, num_agents: int, osm_file: str, hazard: GeoDataFrame, target_node: Optional[int] = None,
-                 seed: Optional[int] = None):
+    def __init__(self, osm_file: str, hazard: GeoDataFrame, agent_locations: GeoDataFrame,
+                 target_node: Optional[int] = None, seed: Optional[int] = None):
         super().__init__()
         self._seed = seed
 
         self.hazard = hazard
-        self.num_agents = num_agents
+        self.agent_locations = agent_locations
         self.schedule = RandomActivation(self)
         self.G: MultiDiGraph = osmnx.graph_from_file(osm_file, simplify=False)
+        self.nodes: GeoDataFrame
+        self.edges: GeoDataFrame
         self.nodes, self.edges = osmnx.save_load.graph_to_gdfs(self.G)
 
+        nodes_tree = cKDTree(np.transpose([self.nodes.geometry.x, self.nodes.geometry.y]))
+
         # Prevents warning about CRS not being the same
-        self.hazard.crs = self.edges.crs
+        self.hazard.crs = self.nodes.crs
+        self.agent_locations.crs = self.nodes.crs
 
-        nodes_to_drop: GeoDataFrame = sjoin(self.edges, hazard)
-
-        self.G.remove_edges_from(nodes_to_drop[['u', 'v']].to_numpy())
+        agents_in_hazard_zone: GeoDataFrame = sjoin(self.agent_locations, self.hazard)
+        _, node_idx = nodes_tree.query(
+            np.transpose([agents_in_hazard_zone.geometry.x, agents_in_hazard_zone.geometry.y]))
 
         self.grid = NetworkGrid(self.G)
         self.target_node = target_node if target_node is not None else self.random.choice(self.nodes.index)
         # Create agents
-        for i in range(self.num_agents):
+        for i, idx in enumerate(node_idx):
             a = agent.EvacuationAgent(i, self)
             self.schedule.add(a)
-            self.place_agent(a)
+            self.grid.place_agent(a, self.nodes.index[idx])
             a.update_route()
 
         self.data_collector = DataCollector(
             model_reporters={'evacuated': lambda x: len(x.grid.G.nodes[x.target_node]['agent'])},
             agent_reporters={'position': 'pos'})
-
-    def place_agent(self, evacuation_agent: agent.EvacuationAgent):
-        """Positions an agent at a random node
-
-        Args:
-            evacuation_agent: The agent to move
-        """
-        node = self.random.choice(list(self.G.nodes))
-        self.grid.place_agent(evacuation_agent, node)
 
     def step(self):
         """Stores the current state in data_collector and advances the model by one step"""
@@ -113,6 +117,3 @@ class EvacuationModel(Model):
                     ax.collections[-1].remove()
                 nodes.plot(ax=ax, color='C1', alpha=0.2)
                 writer.grab_frame()
-
-
-
