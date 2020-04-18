@@ -11,55 +11,67 @@ from typing import Optional
 from . import agent
 from scipy.spatial import cKDTree
 import numpy as np
+from xml.etree import ElementTree as ET
+from shapely.geometry import Point
 
 
 class EvacuationModel(Model):
     """A Mesa ABM model to simulate evacuation during a flood
 
     Args:
-        num_agents: Number of agents to generate
         osm_file: Path to an OpenStreetMap XML file (.osm)
         hazard: A GeoDataFrame containing geometries representing flood hazard zones in WGS84
-        agent_locations: A GeoDataFrame of agent starting locations, agents will be placed at the nearest node
-            Agents located outside the hazard zone will dropped
         target_node: Ths ID of the node to evacuate to, if not specified will be chosen randomly
         seed: Seed value for random number generation
 
     Attributes:
-        num_agents (int): Number of agents to generate
         schedule (RandomActivation): A RandomActivation scheduler which activates each agent once per step,
             in random order, with the order reshuffled every step
         osm_file (str): Path to an OpenStreetMap XML file (.osm)
         hazard (GeoDataFrame): A GeoDataFrame containing geometries representing flood hazard zones in WGS84
-        agent_locations (GeoDataFrame): A GeoDataFrame of agent starting locations, agents will be placed at the nearest node
-            Agents located outside the hazard zone will dropped
-        G (MultiDiGraph): A MultiDiGraph generated from OSM data
+        building_centroids (GeoDataFrame): A GeoDataFrame of buildings found in osm_file
+            An agents will be placed at the nearest node to each building within the hazard zone
+        G (MultiDiGraph): A MultiDiGraph generated from OSM road network
         nodes (GeoDataFrame): A GeoDataFrame containing nodes in G
         edges (GeoDataFrame): A GeoDataFrame containing edges in G
-        grid (NetworkGrid): A NetworkGrid for agents to travel around
-        target_node (int): Ths ID of the node to evacuate to
+        grid (NetworkGrid): A NetworkGrid for agents to travel around based on G
+        target_node (int): The ID of the node to evacuate to
         data_collector (DataCollector): A DataCollector to store the model state at each time step
     """
-    def __init__(self, osm_file: str, hazard: GeoDataFrame, agent_locations: GeoDataFrame,
-                 target_node: Optional[int] = None, seed: Optional[int] = None):
+    def __init__(self, osm_file: str, hazard: GeoDataFrame,target_node: Optional[int] = None,
+                 seed: Optional[int] = None):
         super().__init__()
         self._seed = seed
 
         self.hazard = hazard
-        self.agent_locations = agent_locations
         self.schedule = RandomActivation(self)
         self.G: MultiDiGraph = osmnx.graph_from_file(osm_file, simplify=False)
         self.nodes: GeoDataFrame
         self.edges: GeoDataFrame
         self.nodes, self.edges = osmnx.save_load.graph_to_gdfs(self.G)
 
+        with open(osm_file) as f:
+            tree = ET.fromstring(f.read())
+
+        buildings = []
+        for building in tree.findall("way//*[@k='building'].."):
+            lats, lons = [], []
+            for node in building.findall('nd'):
+                element = tree.find("node[@id='{}']".format(node.attrib['ref']))
+                lats.append(float(element.attrib['lat']))
+                lons.append(float(element.attrib['lon']))
+            buildings.append(Point((min(lons) + max(lons)) / 2, (min(lats) + max(lats)) / 2))
+
+        self.building_centroids = GeoDataFrame(geometry=buildings, crs=self.nodes.crs)
+
         nodes_tree = cKDTree(np.transpose([self.nodes.geometry.x, self.nodes.geometry.y]))
 
         # Prevents warning about CRS not being the same
         self.hazard.crs = self.nodes.crs
-        self.agent_locations.crs = self.nodes.crs
 
-        agents_in_hazard_zone: GeoDataFrame = sjoin(self.agent_locations, self.hazard)
+        agents_in_hazard_zone: GeoDataFrame = sjoin(self.building_centroids, self.hazard)
+        agents_in_hazard_zone = agents_in_hazard_zone.loc[~agents_in_hazard_zone.index.duplicated(keep='first')]
+
         _, node_idx = nodes_tree.query(
             np.transpose([agents_in_hazard_zone.geometry.x, agents_in_hazard_zone.geometry.y]))
 
