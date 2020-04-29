@@ -6,13 +6,14 @@ from networkx import MultiDiGraph
 from mesa.space import NetworkGrid
 from mesa.datacollection import DataCollector
 from matplotlib import animation
-from geopandas import GeoDataFrame, GeoDataFrame, sjoin
+from geopandas import read_file, GeoDataFrame, sjoin
 from typing import Optional
 from . import agent
 from scipy.spatial import cKDTree
 import numpy as np
 from xml.etree import ElementTree as ET
 from shapely.geometry import Point
+import os
 
 
 class EvacuationModel(Model):
@@ -53,16 +54,22 @@ class EvacuationModel(Model):
         with open(osm_file) as f:
             tree = ET.fromstring(f.read())
 
-        buildings = []
-        for building in tree.findall("way//*[@k='building'].."):
-            lats, lons = [], []
-            for node in building.findall('nd'):
-                element = tree.find("node[@id='{}']".format(node.attrib['ref']))
-                lats.append(float(element.attrib['lat']))
-                lons.append(float(element.attrib['lon']))
-            buildings.append(Point((min(lons) + max(lons)) / 2, (min(lats) + max(lats)) / 2))
+        building_centroids = osm_file + '_buildings.gpkg'
+        if os.path.exists(building_centroids):
+            self.building_centroids = read_file(building_centroids)
+        else:
 
-        self.building_centroids = GeoDataFrame(geometry=buildings, crs=self.nodes.crs)
+            buildings = []
+            for building in tree.findall("way//*[@k='building'].."):
+                lats, lons = [], []
+                for node in building.findall('nd'):
+                    element = tree.find("node[@id='{}']".format(node.attrib['ref']))
+                    lats.append(float(element.attrib['lat']))
+                    lons.append(float(element.attrib['lon']))
+                buildings.append(Point((min(lons) + max(lons)) / 2, (min(lats) + max(lats)) / 2))
+
+            self.building_centroids = GeoDataFrame(geometry=buildings, crs=self.nodes.crs)
+            self.building_centroids.to_file(building_centroids, driver='GPKG')
 
         nodes_tree = cKDTree(np.transpose([self.nodes.geometry.x, self.nodes.geometry.y]))
 
