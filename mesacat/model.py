@@ -22,7 +22,7 @@ class EvacuationModel(Model):
     Args:
         osm_file: Path to an OpenStreetMap XML file (.osm)
         hazard: A GeoDataFrame containing geometries representing flood hazard zones in WGS84
-        target_node: Ths ID of the node to evacuate to, if not specified will be chosen randomly
+        target_node: The ID of the node to evacuate to, if not specified will be chosen randomly
         seed: Seed value for random number generation
 
     Attributes:

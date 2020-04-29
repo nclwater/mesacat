@@ -38,33 +38,19 @@
 <span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-mesacat" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
 <dt id="mesacat.EvacuationModel">
-<em class="property">class </em><code class="sig-prename descclassname">mesacat.</code><code class="sig-name descname">EvacuationModel</code><span class="sig-paren">(</span><em class="sig-param">osm_file</em>, <em class="sig-param">hazard</em>, <em class="sig-param">agent_locations</em>, <em class="sig-param">target_node=None</em>, <em class="sig-param">seed=None</em><span class="sig-paren">)</span><a class="headerlink" href="#mesacat.EvacuationModel" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">mesacat.</code><code class="sig-name descname">EvacuationModel</code><span class="sig-paren">(</span><em class="sig-param">osm_file</em>, <em class="sig-param">hazard</em>, <em class="sig-param">target_node=None</em>, <em class="sig-param">seed=None</em><span class="sig-paren">)</span><a class="headerlink" href="#mesacat.EvacuationModel" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">mesa.model.Model</span></code></p>
 <p>A Mesa ABM model to simulate evacuation during a flood</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>num_agents</strong> – Number of agents to generate</p></li>
 <li><p><strong>osm_file</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>) – Path to an OpenStreetMap XML file (.osm)</p></li>
 <li><p><strong>hazard</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">GeoDataFrame</span></code>) – A GeoDataFrame containing geometries representing flood hazard zones in WGS84</p></li>
-<li><p><strong>agent_locations</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">GeoDataFrame</span></code>) – A GeoDataFrame of agent starting locations, agents will be placed at the nearest node
-Agents located outside the hazard zone will dropped</p></li>
 <li><p><strong>target_node</strong> (<code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>]) – Ths ID of the node to evacuate to, if not specified will be chosen randomly</p></li>
 <li><p><strong>seed</strong> (<code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>]) – Seed value for random number generation</p></li>
 </ul>
 </dd>
 </dl>
-<dl class="attribute">
-<dt id="mesacat.EvacuationModel.num_agents">
-<code class="sig-name descname">num_agents</code><a class="headerlink" href="#mesacat.EvacuationModel.num_agents" title="Permalink to this definition">¶</a></dt>
-<dd><p>Number of agents to generate</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type</dt>
-<dd class="field-odd"><p>int</p>
-</dd>
-</dl>
-</dd></dl>
-
 <dl class="attribute">
 <dt id="mesacat.EvacuationModel.schedule">
 <code class="sig-name descname">schedule</code><a class="headerlink" href="#mesacat.EvacuationModel.schedule" title="Permalink to this definition">¶</a></dt>
@@ -100,10 +86,10 @@ in random order, with the order reshuffled every step</p>
 </dd></dl>
 
 <dl class="attribute">
-<dt id="mesacat.EvacuationModel.agent_locations">
-<code class="sig-name descname">agent_locations</code><a class="headerlink" href="#mesacat.EvacuationModel.agent_locations" title="Permalink to this definition">¶</a></dt>
-<dd><p>A GeoDataFrame of agent starting locations, agents will be placed at the nearest node
-Agents located outside the hazard zone will dropped</p>
+<dt id="mesacat.EvacuationModel.building_centroids">
+<code class="sig-name descname">building_centroids</code><a class="headerlink" href="#mesacat.EvacuationModel.building_centroids" title="Permalink to this definition">¶</a></dt>
+<dd><p>A GeoDataFrame of buildings found in osm_file
+An agents will be placed at the nearest node to each building within the hazard zone</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type</dt>
 <dd class="field-odd"><p>GeoDataFrame</p>
@@ -114,7 +100,7 @@ Agents located outside the hazard zone will dropped</p>
 <dl class="attribute">
 <dt id="mesacat.EvacuationModel.G">
 <code class="sig-name descname">G</code><a class="headerlink" href="#mesacat.EvacuationModel.G" title="Permalink to this definition">¶</a></dt>
-<dd><p>A MultiDiGraph generated from OSM data</p>
+<dd><p>A MultiDiGraph generated from OSM road network</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type</dt>
 <dd class="field-odd"><p>MultiDiGraph</p>
@@ -147,7 +133,7 @@ Agents located outside the hazard zone will dropped</p>
 <dl class="attribute">
 <dt id="mesacat.EvacuationModel.grid">
 <code class="sig-name descname">grid</code><a class="headerlink" href="#mesacat.EvacuationModel.grid" title="Permalink to this definition">¶</a></dt>
-<dd><p>A NetworkGrid for agents to travel around</p>
+<dd><p>A NetworkGrid for agents to travel around based on G</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type</dt>
 <dd class="field-odd"><p>NetworkGrid</p>
@@ -158,7 +144,7 @@ Agents located outside the hazard zone will dropped</p>
 <dl class="attribute">
 <dt id="mesacat.EvacuationModel.target_node">
 <code class="sig-name descname">target_node</code><a class="headerlink" href="#mesacat.EvacuationModel.target_node" title="Permalink to this definition">¶</a></dt>
-<dd><p>Ths ID of the node to evacuate to</p>
+<dd><p>The ID of the node to evacuate to</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type</dt>
 <dd class="field-odd"><p>int</p>
