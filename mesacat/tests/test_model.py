@@ -1,5 +1,5 @@
 from mesacat.model import EvacuationModel
-from unittest import TestCase
+from unittest import TestCase, main
 import geopandas as gpd
 import os
 
@@ -11,7 +11,8 @@ if not os.path.exists(outputs):
 osm_data = os.path.join(sample_data, 'bwaise.osm')
 
 extents = gpd.read_file(os.path.join(sample_data, 'extents.gpkg'))
-extents = extents[(extents.threshold == 0.1) & (extents.rainfall == 20) & (extents.duration == 3600 * 6)]
+extents = extents[(extents.threshold == 0.1) & (extents.rainfall == 20) &
+                  (extents.duration == 3600 * 6) & (extents.green == 1)]
 
 
 class TestEvacuationModel(TestCase):

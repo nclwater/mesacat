@@ -7,5 +7,6 @@ dependencies:
   - osmnx=0.11
   - matplotlib=3.1.2
   - sphinx=2.4.4
+  - python-igraph=0.8.2
   - pip:
       - mesa==0.8.6

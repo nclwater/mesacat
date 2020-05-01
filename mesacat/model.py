@@ -7,7 +7,7 @@ from mesa.space import NetworkGrid
 from mesa.datacollection import DataCollector
 from matplotlib import animation
 from geopandas import read_file, GeoDataFrame, sjoin
-from typing import Optional, Iterable
+from typing import Optional
 import pandas as pd
 from . import agent
 from scipy.spatial import cKDTree
@@ -15,6 +15,7 @@ import numpy as np
 from xml.etree import ElementTree as ET
 from shapely.geometry import Point
 import os
+import igraph
 
 
 class EvacuationModel(Model):
@@ -50,6 +51,8 @@ class EvacuationModel(Model):
         self.nodes: GeoDataFrame
         self.edges: GeoDataFrame
         self.nodes, self.edges = osmnx.save_load.graph_to_gdfs(self.G)
+        osmnx.nx.write_gml(self.G, path=osm_file + '.gml')
+        self.igraph = igraph.read(osm_file + '.gml')
 
         with open(osm_file) as f:
             tree = ET.fromstring(f.read())
@@ -80,19 +83,28 @@ class EvacuationModel(Model):
 
         nodes_tree = cKDTree(np.transpose([self.nodes.geometry.x, self.nodes.geometry.y]))
 
-        _, target_node_idx = nodes_tree.query(targets)
-
         # Prevents warning about CRS not being the same
         self.hazard.crs = self.nodes.crs
 
         agents_in_hazard_zone: GeoDataFrame = sjoin(self.building_centroids, self.hazard)
         agents_in_hazard_zone = agents_in_hazard_zone.loc[~agents_in_hazard_zone.index.duplicated(keep='first')]
 
+        targets = GeoDataFrame(geometry=[Point(*target) for target in targets], crs=self.hazard.crs)
+
+        targets_in_hazard_zone: GeoDataFrame = sjoin(targets, self.hazard)
+        targets_in_hazard_zone = targets_in_hazard_zone.loc[~targets_in_hazard_zone.index.duplicated(keep='first')]
+
+        targets_outside_hazard_zone = targets[~targets.index.isin(targets_in_hazard_zone.index.values)]
+
         _, node_idx = nodes_tree.query(
             np.transpose([agents_in_hazard_zone.geometry.x, agents_in_hazard_zone.geometry.y]))
 
-        self.grid = NetworkGrid(self.G)
+        _, target_node_idx = nodes_tree.query(
+            np.transpose([targets_outside_hazard_zone.geometry.x, targets_outside_hazard_zone.geometry.y]))
+
         self.target_nodes = self.nodes.index[target_node_idx]
+
+        self.grid = NetworkGrid(self.G)
 
         # Create agents
         for i, idx in enumerate(node_idx):

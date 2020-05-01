@@ -1,7 +1,6 @@
 from __future__ import annotations
 from . import model
 from mesa import Agent
-from networkx import shortest_path, shortest_path_length
 import typing
 
 
@@ -29,14 +28,18 @@ class EvacuationAgent(Agent):
 
     def update_route(self):
         """Updates the agent's route to the target node"""
+        import numpy as np
+        targets = [self.model.nodes.index.get_loc(node) for node in self.model.target_nodes.values]
+        targets = list(set(targets))
+        source = self.model.nodes.index.get_loc(self.pos)
 
-        shortest_distance = float('inf')
-        for target in self.model.target_nodes:
-            distance = shortest_path_length(self.model.G, self.pos, target, 'length')
-            if distance < shortest_distance:
-                nearest_target = target
+        target_distances = self.model.igraph.shortest_paths_dijkstra(source=[source],
+                                                                     target=set(targets),
+                                                                     weights='length')[0]
+        target = targets[int(np.argmin(target_distances))]
+        path = self.model.igraph.get_shortest_paths(source, target)[0]
 
-        self.route = shortest_path(self.model.G, self.pos, nearest_target, 'length')
+        self.route = self.model.nodes.iloc[path].index
 
     def distance_to_next_node(self):
         """Finds the distance to the next node along the route"""
