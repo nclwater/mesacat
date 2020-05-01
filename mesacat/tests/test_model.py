@@ -19,7 +19,7 @@ class TestEvacuationModel(TestCase):
     @classmethod
     def setUpClass(cls):
 
-        cls.model = EvacuationModel(osm_file=osm_data, seed=1, hazard=extents, target_node=6996374452)
+        cls.model = EvacuationModel(osm_file=osm_data, seed=1, hazard=extents)
         cls.steps = 10
 
     def test_create_movie(self):

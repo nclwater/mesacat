@@ -1,7 +1,7 @@
 from __future__ import annotations
 from . import model
 from mesa import Agent
-from networkx import shortest_path
+from networkx import shortest_path, shortest_path_length
 import typing
 
 
@@ -29,7 +29,14 @@ class EvacuationAgent(Agent):
 
     def update_route(self):
         """Updates the agent's route to the target node"""
-        self.route = shortest_path(self.model.G, self.pos, self.model.target_node, 'length')
+
+        shortest_distance = float('inf')
+        for target in self.model.target_nodes:
+            distance = shortest_path_length(self.model.G, self.pos, target, 'length')
+            if distance < shortest_distance:
+                nearest_target = target
+
+        self.route = shortest_path(self.model.G, self.pos, nearest_target, 'length')
 
     def distance_to_next_node(self):
         """Finds the distance to the next node along the route"""

@@ -7,7 +7,8 @@ from mesa.space import NetworkGrid
 from mesa.datacollection import DataCollector
 from matplotlib import animation
 from geopandas import read_file, GeoDataFrame, sjoin
-from typing import Optional
+from typing import Optional, Iterable
+import pandas as pd
 from . import agent
 from scipy.spatial import cKDTree
 import numpy as np
@@ -22,7 +23,7 @@ class EvacuationModel(Model):
     Args:
         osm_file: Path to an OpenStreetMap XML file (.osm)
         hazard: A GeoDataFrame containing geometries representing flood hazard zones in WGS84
-        target_node: The ID of the node to evacuate to, if not specified will be chosen randomly
+        target_xpath: The XPath expression used to select target nodes from OSM data, defaults to schools
         seed: Seed value for random number generation
 
     Attributes:
@@ -36,10 +37,9 @@ class EvacuationModel(Model):
         nodes (GeoDataFrame): A GeoDataFrame containing nodes in G
         edges (GeoDataFrame): A GeoDataFrame containing edges in G
         grid (NetworkGrid): A NetworkGrid for agents to travel around based on G
-        target_node (int): The ID of the node to evacuate to
         data_collector (DataCollector): A DataCollector to store the model state at each time step
     """
-    def __init__(self, osm_file: str, hazard: GeoDataFrame,target_node: Optional[int] = None,
+    def __init__(self, osm_file: str, hazard: GeoDataFrame, target_xpath: str = "node//*[@k='amenity'][@v='school']..",
                  seed: Optional[int] = None):
         super().__init__()
         self._seed = seed
@@ -71,7 +71,16 @@ class EvacuationModel(Model):
             self.building_centroids = GeoDataFrame(geometry=buildings, crs=self.nodes.crs)
             self.building_centroids.to_file(building_centroids, driver='GPKG')
 
+        targets_path = osm_file + '_targets.csv'
+        if not os.path.exists(targets_path):
+            targets = [(target.attrib['lon'], target.attrib['lat']) for target in tree.findall(target_xpath)]
+            pd.DataFrame.from_records(targets, columns=['lon', 'lat']).to_csv(targets_path, index=False)
+        else:
+            targets = pd.read_csv(targets_path).values.tolist()
+
         nodes_tree = cKDTree(np.transpose([self.nodes.geometry.x, self.nodes.geometry.y]))
+
+        _, target_node_idx = nodes_tree.query(targets)
 
         # Prevents warning about CRS not being the same
         self.hazard.crs = self.nodes.crs
@@ -83,7 +92,8 @@ class EvacuationModel(Model):
             np.transpose([agents_in_hazard_zone.geometry.x, agents_in_hazard_zone.geometry.y]))
 
         self.grid = NetworkGrid(self.G)
-        self.target_node = target_node if target_node is not None else self.random.choice(self.nodes.index)
+        self.target_nodes = self.nodes.index[target_node_idx]
+
         # Create agents
         for i, idx in enumerate(node_idx):
             a = agent.EvacuationAgent(i, self)
@@ -92,7 +102,10 @@ class EvacuationModel(Model):
             a.update_route()
 
         self.data_collector = DataCollector(
-            model_reporters={'evacuated': lambda x: len(x.grid.G.nodes[x.target_node]['agent'])},
+            model_reporters={
+                'evacuated':
+                    lambda x: sum([len(x.grid.G.nodes[target_node]['agent']) for target_node in self.target_nodes])
+            },
             agent_reporters={'position': 'pos'})
 
     def step(self):
@@ -128,6 +141,9 @@ class EvacuationModel(Model):
         writer = writer(fps=fps, metadata=metadata)
 
         f, ax = osmnx.plot_graph(self.grid.G, show=False, dpi=200, node_size=0)
+        self.hazard.plot(ax=ax, alpha=0.2, color='blue')
+        self.nodes.loc[self.target_nodes].plot(
+            ax=ax, color='green', markersize=20)
 
         with writer.saving(f, path, f.dpi):
             for step in range(self.schedule.steps):
