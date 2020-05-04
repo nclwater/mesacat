@@ -46,11 +46,11 @@ class EvacuationAgent(Agent):
             self.route[self.route_index], self.route[self.route_index+1])[0]['length'] - self.distance_along_edge
 
     def step(self):
-        """Moves the agent towards the target node by 1 hour"""
+        """Moves the agent towards the target node by 10 seconds"""
 
         if self.route_index < len(self.route) - 1:
 
-            distance_to_travel = self.speed
+            distance_to_travel = self.speed / 60 / 60 * 10 * 1000  # metres travelled in ten seconds
 
             distance_to_next_node = self.distance_to_next_node()
 

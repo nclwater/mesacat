@@ -68,7 +68,7 @@ class EvacuationModel(Model):
                     lons.append(float(element.attrib['lon']))
                 buildings.append(Point((min(lons) + max(lons)) / 2, (min(lats) + max(lats)) / 2))
 
-            self.building_centroids = GeoDataFrame(geometry=buildings, crs=self.nodes.crs)
+            self.building_centroids = GeoDataFrame(geometry=buildings)
             self.building_centroids.to_file(building_centroids, driver='GPKG')
 
         targets_path = osm_file + '_targets.gpkg'
@@ -83,6 +83,8 @@ class EvacuationModel(Model):
             targets.to_file(targets_path, driver='GPKG')
         else:
             targets = read_file(targets_path)
+
+        targets.crs, self.building_centroids.crs = [self.nodes.crs] * 2
 
         nodes_tree = cKDTree(np.transpose([self.nodes.geometry.x, self.nodes.geometry.y]))
 
@@ -169,16 +171,16 @@ class EvacuationModel(Model):
         f, ax = osmnx.plot_graph(self.grid.G, show=False, dpi=200, node_size=0)
         self.hazard.plot(ax=ax, alpha=0.2, color='blue')
         self.nodes.loc[self.target_nodes].plot(
-            ax=ax, color='green', markersize=20)
+            ax=ax, color='green', markersize=100, marker='*')
 
         with writer.saving(f, path, f.dpi):
-            for step in range(self.schedule.steps):
+            for step in range(self.schedule.steps + 1):
                 nodes = self.nodes.loc[df.loc[(step,), 'position']]
                 if step > 0:
                     ax.collections[-1].remove()
                 nodes.plot(ax=ax, color='C1', alpha=0.2)
-                ax.set_title('T={}\n{}/{} Agents Evacuated ({:.1f} %)'.format(
-                    step,
+                ax.set_title('T={}min\n{}/{} Agents Evacuated ({:.0f}%)'.format(
+                    (step * 10) // 60,
                     self.data_collector.model_vars['evacuated'][step],
                     len(self.schedule.agents),
                     self.data_collector.model_vars['evacuated'][step] / len(self.schedule.agents) * 100
