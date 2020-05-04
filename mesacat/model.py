@@ -6,9 +6,8 @@ from networkx import MultiDiGraph
 from mesa.space import NetworkGrid
 from mesa.datacollection import DataCollector
 from matplotlib import animation
-from geopandas import read_file, GeoDataFrame, sjoin
+from geopandas import read_file, GeoDataFrame, sjoin, points_from_xy
 from typing import Optional
-import pandas as pd
 from . import agent
 from scipy.spatial import cKDTree
 import numpy as np
@@ -51,8 +50,6 @@ class EvacuationModel(Model):
         self.nodes: GeoDataFrame
         self.edges: GeoDataFrame
         self.nodes, self.edges = osmnx.save_load.graph_to_gdfs(self.G)
-        osmnx.nx.write_gml(self.G, path=osm_file + '.gml')
-        self.igraph = igraph.read(osm_file + '.gml')
 
         with open(osm_file) as f:
             tree = ET.fromstring(f.read())
@@ -74,12 +71,18 @@ class EvacuationModel(Model):
             self.building_centroids = GeoDataFrame(geometry=buildings, crs=self.nodes.crs)
             self.building_centroids.to_file(building_centroids, driver='GPKG')
 
-        targets_path = osm_file + '_targets.csv'
+        targets_path = osm_file + '_targets.gpkg'
         if not os.path.exists(targets_path):
-            targets = [(target.attrib['lon'], target.attrib['lat']) for target in tree.findall(target_xpath)]
-            pd.DataFrame.from_records(targets, columns=['lon', 'lat']).to_csv(targets_path, index=False)
+            lats, lons, ids = [], [], []
+            for target in tree.findall(target_xpath):
+
+                lats.append(float(target.attrib['lat']))
+                lons.append(float(target.attrib['lon']))
+                ids.append(int(target.attrib['id']))
+            targets = GeoDataFrame({'osm_id': ids}, geometry=points_from_xy(lons, lats))
+            targets.to_file(targets_path, driver='GPKG')
         else:
-            targets = pd.read_csv(targets_path).values.tolist()
+            targets = read_file(targets_path)
 
         nodes_tree = cKDTree(np.transpose([self.nodes.geometry.x, self.nodes.geometry.y]))
 
@@ -88,8 +91,6 @@ class EvacuationModel(Model):
 
         agents_in_hazard_zone: GeoDataFrame = sjoin(self.building_centroids, self.hazard)
         agents_in_hazard_zone = agents_in_hazard_zone.loc[~agents_in_hazard_zone.index.duplicated(keep='first')]
-
-        targets = GeoDataFrame(geometry=[Point(*target) for target in targets], crs=self.hazard.crs)
 
         targets_in_hazard_zone: GeoDataFrame = sjoin(targets, self.hazard)
         targets_in_hazard_zone = targets_in_hazard_zone.loc[~targets_in_hazard_zone.index.duplicated(keep='first')]
@@ -102,7 +103,15 @@ class EvacuationModel(Model):
         _, target_node_idx = nodes_tree.query(
             np.transpose([targets_outside_hazard_zone.geometry.x, targets_outside_hazard_zone.geometry.y]))
 
-        self.target_nodes = self.nodes.index[target_node_idx]
+        for (_, row), nearest_node in zip(targets_outside_hazard_zone.iterrows(), self.nodes.index[target_node_idx]):
+            self.G.add_node(row.osm_id, x=row.geometry.x, y=row.geometry.y)
+            self.G.add_edge(nearest_node, row.osm_id, length=0)
+
+        self.nodes, self.edges = osmnx.save_load.graph_to_gdfs(self.G)
+        osmnx.nx.write_gml(self.G, path=osm_file + '.gml')
+        self.igraph = igraph.read(osm_file + '.gml')
+
+        self.target_nodes = targets_outside_hazard_zone.osm_id
 
         self.grid = NetworkGrid(self.G)
 
@@ -116,14 +125,14 @@ class EvacuationModel(Model):
         self.data_collector = DataCollector(
             model_reporters={
                 'evacuated':
-                    lambda x: sum([len(x.grid.G.nodes[target_node]['agent']) for target_node in self.target_nodes])
+                    lambda x: sum([len(x.grid.G.nodes[target_node]['agent']) for target_node in set(self.target_nodes)])
             },
             agent_reporters={'position': 'pos'})
 
     def step(self):
-        """Stores the current state in data_collector and advances the model by one step"""
-        self.data_collector.collect(self)
+        """Advances the model by one step and then stores the current state in data_collector"""
         self.schedule.step()
+        self.data_collector.collect(self)
 
     def run(self, steps: int):
         """Runs the model for the given number of steps
@@ -133,8 +142,13 @@ class EvacuationModel(Model):
         Returns:
             DataFrame: the agent vars dataframe
         """
-        for _ in range(steps):
+        self.data_collector.collect(self)
+        for step in range(steps):
             self.step()
+            evacuated = self.data_collector.model_vars['evacuated'][-1]
+            total = len(self.schedule.agents)
+            if evacuated == total:
+                break
 
         return self.data_collector.get_agent_vars_dataframe()
 
@@ -163,4 +177,10 @@ class EvacuationModel(Model):
                 if step > 0:
                     ax.collections[-1].remove()
                 nodes.plot(ax=ax, color='C1', alpha=0.2)
+                ax.set_title('T={}\n{}/{} Agents Evacuated ({:.1f} %)'.format(
+                    step,
+                    self.data_collector.model_vars['evacuated'][step],
+                    len(self.schedule.agents),
+                    self.data_collector.model_vars['evacuated'][step] / len(self.schedule.agents) * 100
+                ))
                 writer.grab_frame()

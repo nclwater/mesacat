@@ -1,5 +1,5 @@
 from mesacat.model import EvacuationModel
-from unittest import TestCase, main
+from unittest import TestCase
 import geopandas as gpd
 import os
 

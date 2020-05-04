@@ -30,11 +30,10 @@ class EvacuationAgent(Agent):
         """Updates the agent's route to the target node"""
         import numpy as np
         targets = [self.model.nodes.index.get_loc(node) for node in self.model.target_nodes.values]
-        targets = list(set(targets))
         source = self.model.nodes.index.get_loc(self.pos)
 
         target_distances = self.model.igraph.shortest_paths_dijkstra(source=[source],
-                                                                     target=set(targets),
+                                                                     target=targets,
                                                                      weights='length')[0]
         target = targets[int(np.argmin(target_distances))]
         path = self.model.igraph.get_shortest_paths(source, target)[0]
