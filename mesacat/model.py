@@ -6,7 +6,7 @@ from osmnx.footprints import create_footprints_gdf
 from networkx import Graph
 from mesa.space import NetworkGrid
 from mesa.datacollection import DataCollector
-from matplotlib import animation
+from matplotlib import animation, lines
 from geopandas import GeoDataFrame, sjoin
 from pandas import Series
 from typing import Optional, Iterable
@@ -15,6 +15,7 @@ from scipy.spatial import cKDTree
 import numpy as np
 from shapely.geometry import Polygon
 import igraph
+from matplotlib.patches import Patch
 
 
 class EvacuationModel(Model):
@@ -181,17 +182,52 @@ class EvacuationModel(Model):
         metadata = dict(title='Movie Test', artist='Matplotlib', comment='Movie support!')
         writer = writer(fps=fps, metadata=metadata)
 
-        f, ax = osmnx.plot_graph(self.grid.G, show=False, dpi=200, node_size=0)
-        self.hazard.plot(ax=ax, alpha=0.2, color='blue')
-        self.nodes.loc[self.target_nodes].plot(
-            ax=ax, color='green', markersize=100, marker='*')
+        hazard_color = 'blue'
+        hazard_alpha = 0.2
+        targets_color = 'green'
+        targets_marker = 'x'
+        targets_size = 10
+        agents_color = 'C1'
+        agents_marker = 'o'
+        agents_size = 10
+        agents_alpha = 0.2
+        edge_color = '#999999'
 
+        f, ax = osmnx.plot_graph(self.grid.G, show=False, dpi=200, node_size=0, edge_color=edge_color)
+
+        self.hazard.plot(ax=ax, alpha=hazard_alpha, color=hazard_color)
+        self.nodes.loc[self.target_nodes].plot(ax=ax,
+                                               color=targets_color,
+                                               markersize=targets_size,
+                                               marker=targets_marker,
+                                               zorder=4)
+
+        ax.legend(handles=[
+            Patch(label='Hazard', facecolor=hazard_color, alpha=hazard_alpha),
+            lines.Line2D([], [],
+                         label='Agents',
+                         color=agents_color,
+                         marker=agents_marker,
+                         markersize=agents_size,
+                         alpha=agents_alpha,
+                         linestyle='None'),
+            lines.Line2D([], [],
+                         label='Targets',
+                         color=targets_color,
+                         marker=targets_marker,
+                         markersize=targets_size,
+                         linestyle='None'),
+            lines.Line2D([], [],
+                         label='Road Network',
+                         color=edge_color,
+                         linestyle='-')
+        ])
         with writer.saving(f, self.output_path+'.mp4', f.dpi):
             for step in range(self.schedule.steps + 1):
                 nodes = self.nodes.loc[df.loc[(step,), 'position']]
                 if step > 0:
                     ax.collections[-1].remove()
-                nodes.plot(ax=ax, color='C1', alpha=0.2)
+                nodes.plot(ax=ax, color=agents_color, alpha=agents_alpha, zorder=3, markersize=agents_size)
                 ax.set_title('T={}min\n{}/{} Agents Evacuated ({:.0f}%)'.format(
                     (step * 10) // 60,
                     self.data_collector.model_vars['evacuated'][step],
