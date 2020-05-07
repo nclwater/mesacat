@@ -2,18 +2,18 @@ from __future__ import annotations
 from mesa import Model
 from mesa.time import RandomActivation
 import osmnx
-from networkx import MultiDiGraph
+from osmnx.footprints import create_footprints_gdf
+from networkx import Graph
 from mesa.space import NetworkGrid
 from mesa.datacollection import DataCollector
 from matplotlib import animation
-from geopandas import read_file, GeoDataFrame, sjoin, points_from_xy
-from typing import Optional
+from geopandas import GeoDataFrame, sjoin
+from pandas import Series
+from typing import Optional, Iterable
 from . import agent
 from scipy.spatial import cKDTree
 import numpy as np
-from xml.etree import ElementTree as ET
-from shapely.geometry import Point
-import os
+from shapely.geometry import Polygon
 import igraph
 
 
@@ -21,83 +21,89 @@ class EvacuationModel(Model):
     """A Mesa ABM model to simulate evacuation during a flood
 
     Args:
-        osm_file: Path to an OpenStreetMap XML file (.osm)
-        hazard: A GeoDataFrame containing geometries representing flood hazard zones in WGS84
-        target_xpath: The XPath expression used to select target nodes from OSM data, defaults to schools
+        hazard: Spatial table of flood hazard zones in WGS84
+        output_path: Path to output files without extension
+        domain: Polygon used to select OSM data, required if the graph, agents or targets are not specified
+        target_types: List of OSM amenity values to use as targets, defaults to school
+        network: Undirected network generated from OSM road network
+        targets: Spatial table of OSM amenities
+        agents: Spatial table of agent starting locations
         seed: Seed value for random number generation
 
     Attributes:
-        schedule (RandomActivation): A RandomActivation scheduler which activates each agent once per step,
+        output_path (str): Path to output files without extension
+        schedule (RandomActivation): Scheduler which activates each agent once per step,
             in random order, with the order reshuffled every step
-        osm_file (str): Path to an OpenStreetMap XML file (.osm)
-        hazard (GeoDataFrame): A GeoDataFrame containing geometries representing flood hazard zones in WGS84
-        building_centroids (GeoDataFrame): A GeoDataFrame of buildings found in osm_file
-            An agents will be placed at the nearest node to each building within the hazard zone
-        G (MultiDiGraph): A MultiDiGraph generated from OSM road network
-        nodes (GeoDataFrame): A GeoDataFrame containing nodes in G
-        edges (GeoDataFrame): A GeoDataFrame containing edges in G
-        grid (NetworkGrid): A NetworkGrid for agents to travel around based on G
-        data_collector (DataCollector): A DataCollector to store the model state at each time step
+        hazard (GeoDataFrame): Spatial table of flood hazard zones in WGS84
+        G (Graph): Undirected network generated from OSM road network
+        nodes (GeoDataFrame): Spatial table of nodes in G
+        edges (GeoDataFrame): Spatial table edges in G
+        grid (NetworkGrid): Network grid for agents to travel around based on G
+        data_collector (DataCollector): Stores the model state at each time step
+        target_nodes (Series): Series of nodes to evacuate to
+        igraph: Duplicate of G as an igraph object to speed up routing
+
     """
-    def __init__(self, osm_file: str, hazard: GeoDataFrame, target_xpath: str = "node//*[@k='amenity'][@v='school']..",
-                 seed: Optional[int] = None):
+    def __init__(
+            self,
+            hazard: GeoDataFrame,
+            output_path: str,
+            domain: Optional[Polygon] = None,
+            target_types: Iterable[str] = tuple(['school']),
+            network: Optional[Graph] = None,
+            targets: Optional[GeoDataFrame] = None,
+            agents: Optional[GeoDataFrame] = None,
+            seed: Optional[int] = None):
         super().__init__()
         self._seed = seed
+        self.output_path = output_path
 
         self.hazard = hazard
         self.schedule = RandomActivation(self)
-        self.G: MultiDiGraph = osmnx.graph_from_file(osm_file, simplify=False)
+
+        if network is None:
+            self.G = osmnx.graph_from_polygon(domain, simplify=False)
+            self.G = self.G.to_undirected()
+        else:
+            self.G = network
+
         self.nodes: GeoDataFrame
         self.edges: GeoDataFrame
         self.nodes, self.edges = osmnx.save_load.graph_to_gdfs(self.G)
 
-        with open(osm_file) as f:
-            tree = ET.fromstring(f.read())
+        if agents is None:
+            agents = GeoDataFrame(geometry=create_footprints_gdf(domain).centroid)
 
-        building_centroids = osm_file + '_buildings.gpkg'
-        if os.path.exists(building_centroids):
-            self.building_centroids = read_file(building_centroids)
-        else:
+        if targets is None:
+            targets = osmnx.pois_from_polygon(domain, amenities=list(target_types))
+            # Query can return polygons as well as points, only using the points
+            targets = targets[targets.geometry.geom_type == 'Point']
 
-            buildings = []
-            for building in tree.findall("way//*[@k='building'].."):
-                lats, lons = [], []
-                for node in building.findall('nd'):
-                    element = tree.find("node[@id='{}']".format(node.attrib['ref']))
-                    lats.append(float(element.attrib['lat']))
-                    lons.append(float(element.attrib['lon']))
-                buildings.append(Point((min(lons) + max(lons)) / 2, (min(lats) + max(lats)) / 2))
+        output_gpkg = output_path + '.gpkg'
 
-            self.building_centroids = GeoDataFrame(geometry=buildings)
-            self.building_centroids.to_file(building_centroids, driver='GPKG')
+        driver = 'GPKG'
+        agents.to_file(output_gpkg, layer='agents', driver=driver)
+        targets[['osmid', 'geometry']].to_file(output_gpkg, layer='targets', driver=driver)
 
-        targets_path = osm_file + '_targets.gpkg'
-        if not os.path.exists(targets_path):
-            lats, lons, ids = [], [], []
-            for target in tree.findall(target_xpath):
-
-                lats.append(float(target.attrib['lat']))
-                lons.append(float(target.attrib['lon']))
-                ids.append(int(target.attrib['id']))
-            targets = GeoDataFrame({'osm_id': ids}, geometry=points_from_xy(lons, lats))
-            targets.to_file(targets_path, driver='GPKG')
-        else:
-            targets = read_file(targets_path)
-
-        targets.crs, self.building_centroids.crs = [self.nodes.crs] * 2
+        targets.crs, agents.crs = [self.nodes.crs] * 2
 
         nodes_tree = cKDTree(np.transpose([self.nodes.geometry.x, self.nodes.geometry.y]))
 
         # Prevents warning about CRS not being the same
         self.hazard.crs = self.nodes.crs
+        self.hazard.to_file(output_gpkg, layer='hazard', driver=driver)
 
-        agents_in_hazard_zone: GeoDataFrame = sjoin(self.building_centroids, self.hazard)
+        agents_in_hazard_zone: GeoDataFrame = sjoin(agents, self.hazard)
         agents_in_hazard_zone = agents_in_hazard_zone.loc[~agents_in_hazard_zone.index.duplicated(keep='first')]
+
+        assert len(agents_in_hazard_zone) > 0, 'There are no agents within the hazard zone'
 
         targets_in_hazard_zone: GeoDataFrame = sjoin(targets, self.hazard)
         targets_in_hazard_zone = targets_in_hazard_zone.loc[~targets_in_hazard_zone.index.duplicated(keep='first')]
 
         targets_outside_hazard_zone = targets[~targets.index.isin(targets_in_hazard_zone.index.values)]
+
+        assert len(targets_outside_hazard_zone) > 0, 'There are no targets outside the hazard zone'
 
         _, node_idx = nodes_tree.query(
             np.transpose([agents_in_hazard_zone.geometry.x, agents_in_hazard_zone.geometry.y]))
@@ -106,14 +112,22 @@ class EvacuationModel(Model):
             np.transpose([targets_outside_hazard_zone.geometry.x, targets_outside_hazard_zone.geometry.y]))
 
         for (_, row), nearest_node in zip(targets_outside_hazard_zone.iterrows(), self.nodes.index[target_node_idx]):
-            self.G.add_node(row.osm_id, x=row.geometry.x, y=row.geometry.y)
-            self.G.add_edge(nearest_node, row.osm_id, length=0)
+            if not self.G.has_node(row.osmid):
+                self.G.add_edge(nearest_node, row.osmid, length=0)
+                self.G.nodes[row.osmid]['osmid'] = row.osmid
+                self.G.nodes[row.osmid]['x'] = row.geometry.x
+                self.G.nodes[row.osmid]['y'] = row.geometry.y
 
         self.nodes, self.edges = osmnx.save_load.graph_to_gdfs(self.G)
-        osmnx.nx.write_gml(self.G, path=osm_file + '.gml')
-        self.igraph = igraph.read(osm_file + '.gml')
 
-        self.target_nodes = targets_outside_hazard_zone.osm_id
+        self.nodes[['osmid', 'geometry']].to_file(output_gpkg, layer='nodes', driver=driver)
+        self.edges[['osmid', 'geometry']].to_file(output_gpkg, layer='edges', driver=driver)
+
+        output_gml = output_path + '.gml'
+        osmnx.nx.write_gml(self.G, path=output_gml)
+        self.igraph = igraph.read(output_gml)
+
+        self.target_nodes = targets_outside_hazard_zone.osmid
 
         self.grid = NetworkGrid(self.G)
 
@@ -151,14 +165,13 @@ class EvacuationModel(Model):
             total = len(self.schedule.agents)
             if evacuated == total:
                 break
-
+        self.data_collector.get_agent_vars_dataframe().to_csv(self.output_path+'.csv')
         return self.data_collector.get_agent_vars_dataframe()
 
-    def create_movie(self, path: str, fps: int = 5):
+    def create_movie(self, fps: int = 5):
         """Generates an MP4 video of all model steps using FFmpeg (https://www.ffmpeg.org/)
 
         Args:
-            path: path to create the MP4 file
             fps: frames per second of the video
         """
 
@@ -173,7 +186,7 @@ class EvacuationModel(Model):
         self.nodes.loc[self.target_nodes].plot(
             ax=ax, color='green', markersize=100, marker='*')
 
-        with writer.saving(f, path, f.dpi):
+        with writer.saving(f, self.output_path+'.mp4', f.dpi):
             for step in range(self.schedule.steps + 1):
                 nodes = self.nodes.loc[df.loc[(step,), 'position']]
                 if step > 0:

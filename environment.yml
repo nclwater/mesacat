@@ -4,7 +4,7 @@ channels:
 dependencies:
   - python=3.8
   - pip
-  - osmnx=0.11
+  - osmnx=0.12.1
   - matplotlib=3.1.2
   - sphinx=2.4.4
   - python-igraph=0.8.2

@@ -36,7 +36,7 @@ class EvacuationAgent(Agent):
                                                                      target=targets,
                                                                      weights='length')[0]
         target = targets[int(np.argmin(target_distances))]
-        path = self.model.igraph.get_shortest_paths(source, target)[0]
+        path = self.model.igraph.get_shortest_paths(source, target, weights='length')[0]
 
         self.route = self.model.nodes.iloc[path].index
 
