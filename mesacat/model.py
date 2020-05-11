@@ -193,7 +193,8 @@ class EvacuationModel(Model):
         agents_alpha = 0.2
         edge_color = '#999999'
 
-        f, ax = osmnx.plot_graph(self.grid.G, show=False, dpi=200, node_size=0, edge_color=edge_color)
+        f, ax = osmnx.plot_graph(self.grid.G, show=False, dpi=200, node_size=0, edge_color=edge_color,
+                                 edge_linewidth=0.5)
 
         self.hazard.plot(ax=ax, alpha=hazard_alpha, color=hazard_color)
         self.nodes.loc[self.target_nodes].plot(ax=ax,
