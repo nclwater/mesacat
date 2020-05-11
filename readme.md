@@ -1,7 +1,8 @@
-# MesaCAT - Mesa Model of Flood Evacuation using OpenStreetMap
+# MesaCAT - Mesa Agent-based Model of Flood Evacuation using OpenStreetMap
 
 ## Documentation
 https://fmcclean.github.io/mesacat
+https://mesa.readthedocs.io/en/master/
 
 ## Dependencies
 See environment.yml
