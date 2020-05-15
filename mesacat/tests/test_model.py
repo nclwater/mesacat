@@ -17,16 +17,6 @@ domain = gpd.read_file(os.path.join(sample_data, 'bwaise.gpkg')).geometry[0]
 
 class TestEvacuationModel(TestCase):
 
-    @classmethod
-    def setUpClass(cls):
-
-        cls.model = EvacuationModel(domain=domain,
-                                    output_path=os.path.join(outputs, 'test-model'),
-                                    seed=1,
-                                    hazard=extents)
-        cls.steps = 10000
-
-    def test_create_movie(self):
-
-        self.model.run(self.steps)
-        self.model.create_movie()
+    def test_model_run(self):
+        EvacuationModel(domain=domain, output_path=os.path.join(outputs, 'test-model'),
+                        seed=1, hazard=extents).run(10000)

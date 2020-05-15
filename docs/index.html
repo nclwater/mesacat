@@ -162,17 +162,6 @@ in random order, with the order reshuffled every step</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="mesacat.EvacuationModel.create_movie">
-<code class="sig-name descname">create_movie</code><span class="sig-paren">(</span><em class="sig-param">fps=5</em><span class="sig-paren">)</span><a class="headerlink" href="#mesacat.EvacuationModel.create_movie" title="Permalink to this definition">¶</a></dt>
-<dd><p>Generates an MP4 video of all model steps using FFmpeg (<a class="reference external" href="https://www.ffmpeg.org/">https://www.ffmpeg.org/</a>)</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>fps</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – frames per second of the video</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="method">
 <dt id="mesacat.EvacuationModel.run">
 <code class="sig-name descname">run</code><span class="sig-paren">(</span><em class="sig-param">steps</em><span class="sig-paren">)</span><a class="headerlink" href="#mesacat.EvacuationModel.run" title="Permalink to this definition">¶</a></dt>
 <dd><p>Runs the model for the given number of steps</p>
@@ -283,6 +272,21 @@ in random order, with the order reshuffled every step</p>
 <dd><p>Updates the agent’s route to the target node</p>
 </dd></dl>
 
+</dd></dl>
+
+<dl class="function">
+<dt id="mesacat.create_movie">
+<code class="sig-prename descclassname">mesacat.</code><code class="sig-name descname">create_movie</code><span class="sig-paren">(</span><em class="sig-param">in_path</em>, <em class="sig-param">out_path</em>, <em class="sig-param">fps=5</em><span class="sig-paren">)</span><a class="headerlink" href="#mesacat.create_movie" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generates an MP4 video of all model steps using FFmpeg (<a class="reference external" href="https://www.ffmpeg.org/">https://www.ffmpeg.org/</a>)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>in_path</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>) – path to model output files without extension</p></li>
+<li><p><strong>out_path</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>) – path to movie file</p></li>
+<li><p><strong>fps</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>) – frames per second of the video</p></li>
+</ul>
+</dd>
+</dl>
 </dd></dl>
 
 </div>
