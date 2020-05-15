@@ -92,7 +92,7 @@ class EvacuationModel(Model):
 
         agents_in_hazard_zone: GeoDataFrame = sjoin(agents, self.hazard)
         agents_in_hazard_zone = agents_in_hazard_zone.loc[~agents_in_hazard_zone.index.duplicated(keep='first')]
-        agents_in_hazard_zone.to_file(output_gpkg, layer='agents', driver=driver)
+        agents_in_hazard_zone.geometry.to_file(output_gpkg, layer='agents', driver=driver)
 
         assert len(agents_in_hazard_zone) > 0, 'There are no agents within the hazard zone'
 
