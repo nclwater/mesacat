@@ -75,10 +75,14 @@ def create_movie(in_path: str, out_path: str, fps: int = 5):
             agents = nodes.loc[agent_df[agent_df.Step == step].position]
             line.set_offsets(list(zip(agents.geometry.x, agents.geometry.y)))
             evacuated = model_df.evacuated.loc[step]
-            ax.set_title('T={}min\n{}/{} Agents Evacuated ({:.0f}%)'.format(
+            stranded = model_df.stranded.loc[step]
+            ax.set_title('T={}min\n{}/{} Agents Evacuated ({:.0f}%)\n{}/{} Agents Stranded ({:.0f}%)'.format(
                 (step * 10) // 60,
                 evacuated,
                 len(agents),
-                evacuated / len(agents) * 100
+                evacuated / len(agents) * 100,
+                stranded,
+                len(agents),
+                stranded / len(agents) * 100
             ))
             writer.grab_frame()

@@ -26,6 +26,7 @@ class EvacuationModel(Model):
         target_types: List of OSM amenity values to use as targets, defaults to school
         network: Undirected network generated from OSM road network
         targets: Spatial table of OSM amenities
+        target_capacity: The number of agents that can be evacuated to each target
         agents: Spatial table of agent starting locations
         seed: Seed value for random number generation
 
@@ -40,6 +41,7 @@ class EvacuationModel(Model):
         grid (NetworkGrid): Network grid for agents to travel around based on G
         data_collector (DataCollector): Stores the model state at each time step
         target_nodes (Series): Series of nodes to evacuate to
+        target_capacity (int): The number of agents that can be evacuated to each target
         igraph: Duplicate of G as an igraph object to speed up routing
 
     """
@@ -51,6 +53,7 @@ class EvacuationModel(Model):
             target_types: Iterable[str] = tuple(['school']),
             network: Optional[Graph] = None,
             targets: Optional[GeoDataFrame] = None,
+            target_capacity: int = 100,
             agents: Optional[GeoDataFrame] = None,
             seed: Optional[int] = None):
         super().__init__()
@@ -59,6 +62,7 @@ class EvacuationModel(Model):
 
         self.hazard = hazard
         self.schedule = RandomActivation(self)
+        self.target_capacity = target_capacity
 
         if network is None:
             self.G = osmnx.graph_from_polygon(domain, simplify=False)
@@ -139,8 +143,8 @@ class EvacuationModel(Model):
 
         self.data_collector = DataCollector(
             model_reporters={
-                'evacuated':
-                    lambda x: sum([len(x.grid.G.nodes[target_node]['agent']) for target_node in set(self.target_nodes)])
+                'evacuated': evacuated,
+                'stranded': stranded
             },
             agent_reporters={'position': 'pos'})
 
@@ -150,7 +154,7 @@ class EvacuationModel(Model):
         self.data_collector.collect(self)
 
     def run(self, steps: int):
-        """Runs the model for the given number of steps
+        """Runs the model for the given number of steps`
 
         Args:
             steps: number of steps to run the model for
@@ -160,11 +164,20 @@ class EvacuationModel(Model):
         self.data_collector.collect(self)
         for _ in range(steps):
             self.step()
-            if self.data_collector.model_vars['evacuated'][-1] == len(self.schedule.agents):
-                # Continue for 5 steps after all agents evacuated
+            if self.data_collector.model_vars['evacuated'][-1] + self.data_collector.model_vars['stranded'][-1] == len(
+                    self.schedule.agents):
+                # Continue for 5 steps after all agents evacuated or stranded
                 for _ in range(5):
                     self.step()
                 break
         self.data_collector.get_agent_vars_dataframe().to_csv(self.output_path + '.agent.csv')
         self.data_collector.get_model_vars_dataframe().to_csv(self.output_path + '.model.csv')
         return self.data_collector.get_agent_vars_dataframe()
+
+
+def evacuated(m):
+    return len([a for a in m.schedule.agents if a.evacuated])
+
+
+def stranded(m):
+    return len([a for a in m.schedule.agents if a.stranded])
