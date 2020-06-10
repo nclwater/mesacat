@@ -25,7 +25,8 @@ def create_movie(in_path: str, out_path: str, fps: int = 5):
     hazard_color = 'blue'
     hazard_alpha = 0.2
     targets_color = 'green'
-    targets_marker = 'x'
+    targets_at_capacity_color = 'grey'
+    targets_marker = 'o'
     targets_size = 10
     agents_color = 'C1'
     agents_marker = 'o'
@@ -37,15 +38,19 @@ def create_movie(in_path: str, out_path: str, fps: int = 5):
     nodes, _ = osmnx.save_load.graph_to_gdfs(graph)
     nodes.index = nodes.index.astype('int64')
 
+    # Road network
     f, ax = osmnx.plot_graph(graph, show=False, dpi=200, node_size=0, edge_color=edge_color, edge_linewidth=0.5)
 
     geopackage = in_path + '.gpkg'
 
     hazard = gpd.read_file(geopackage, layer='hazard')
     target_nodes = gpd.read_file(geopackage, layer='targets')
+    target_nodes = target_nodes.set_index(target_nodes.osmid.astype('int64'))
 
+    # Flood hazard zone
     hazard.plot(ax=ax, alpha=hazard_alpha, color=hazard_color)
-    target_nodes.plot(ax=ax, color=targets_color, markersize=targets_size, marker=targets_marker, zorder=4)
+
+    # Targets
 
     ax.legend(handles=[
         Patch(label='Hazard', facecolor=hazard_color, alpha=hazard_alpha),
@@ -63,6 +68,12 @@ def create_movie(in_path: str, out_path: str, fps: int = 5):
                      markersize=targets_size,
                      linestyle='None'),
         lines.Line2D([], [],
+                     label='Targets at Capacity',
+                     color=targets_at_capacity_color,
+                     marker=targets_marker,
+                     markersize=targets_size,
+                     linestyle='None'),
+        lines.Line2D([], [],
                      label='Road Network',
                      color=edge_color,
                      linestyle='-')
@@ -71,18 +82,29 @@ def create_movie(in_path: str, out_path: str, fps: int = 5):
         start = nodes.loc[agent_df[agent_df.Step == 0].position]
         line = ax.scatter(start.geometry.x, start.geometry.y,
                           marker=agents_marker, s=agents_size, alpha=agents_alpha, color=agents_color)
+
+        targets = ax.scatter(target_nodes.geometry.x, target_nodes.geometry.y,
+                              color=targets_color, s=targets_size, marker=targets_marker, zorder=4)
+
         for step in model_df.index:
-            agents = nodes.loc[agent_df[agent_df.Step == step].position]
-            line.set_offsets(list(zip(agents.geometry.x, agents.geometry.y)))
-            evacuated = model_df.evacuated.loc[step]
+            agents_at_step = agent_df[agent_df.Step == step]
+            evacuated_agents = agents_at_step[agents_at_step.status == 1]
+            agent_locations = nodes.loc[agents_at_step.position]
+            line.set_offsets(list(zip(agent_locations.geometry.x, agent_locations.geometry.y)))
+            occupants = target_nodes.join(
+                evacuated_agents.position.value_counts().rename('occupants')).occupants.replace(float('NaN'), 0)
+            occupants = target_nodes.join(occupants).replace(float('NaN'), 0).occupants.values
+            targets.set_sizes(occupants)
+            targets.set_color([targets_color if o < 100 else targets_at_capacity_color for o in occupants])
+            evacuated_total = model_df.evacuated.loc[step]
             stranded = model_df.stranded.loc[step]
             ax.set_title('T={}min\n{}/{} Agents Evacuated ({:.0f}%)\n{}/{} Agents Stranded ({:.0f}%)'.format(
                 (step * 10) // 60,
-                evacuated,
-                len(agents),
-                evacuated / len(agents) * 100,
+                evacuated_total,
+                len(agent_locations),
+                evacuated_total / len(agent_locations) * 100,
                 stranded,
-                len(agents),
-                stranded / len(agents) * 100
+                len(agent_locations),
+                stranded / len(agent_locations) * 100
             ))
             writer.grab_frame()

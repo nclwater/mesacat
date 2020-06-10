@@ -69,7 +69,7 @@ class EvacuationAgent(Agent):
             # If target is reached
             if self.route_index == len(self.route) - 1:
                 # If target is at capacity
-                if len(self.model.grid.get_cell_list_contents([self.pos])) > self.model.target_limit:
+                if len(self.model.grid.get_cell_list_contents([self.pos])) > self.model.target_capacity:
                     self.model.target_nodes = self.model.target_nodes[self.model.target_nodes.values != self.pos]
                     self.update_route()
                     if self.stranded:

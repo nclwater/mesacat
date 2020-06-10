@@ -33,4 +33,4 @@ class TestEvacuationModel(TestCase):
             targets=targets,
             network=network,
             output_path=os.path.join(outputs, 'test-model'),
-            seed=1, hazard=extents).run(10000)
+            seed=1, hazard=extents).run(50)

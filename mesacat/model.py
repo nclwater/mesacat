@@ -146,7 +146,8 @@ class EvacuationModel(Model):
                 'evacuated': evacuated,
                 'stranded': stranded
             },
-            agent_reporters={'position': 'pos'})
+            agent_reporters={'position': 'pos',
+                             'status': status})
 
     def step(self):
         """Advances the model by one step and then stores the current state in data_collector"""
@@ -181,3 +182,7 @@ def evacuated(m):
 
 def stranded(m):
     return len([a for a in m.schedule.agents if a.stranded])
+
+
+def status(a):
+    return 1 if a.evacuated else 2 if a.stranded else 0
