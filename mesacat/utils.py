@@ -29,9 +29,11 @@ def create_movie(in_path: str, out_path: str, fps: int = 5):
     targets_marker = 'o'
     targets_size = 10
     agents_color = 'C1'
+    rerouted_agents_color = 'red'
+    repeatedly_rerouted_agents_color = 'purple'
     agents_marker = 'o'
     agents_size = 10
-    agents_alpha = 0.2
+    agents_alpha = 1
     edge_color = '#999999'
 
     graph = nx.read_gml(in_path + '.gml')
@@ -62,6 +64,20 @@ def create_movie(in_path: str, out_path: str, fps: int = 5):
                      alpha=agents_alpha,
                      linestyle='None'),
         lines.Line2D([], [],
+                     label='Rerouted Agents',
+                     color=rerouted_agents_color,
+                     marker=agents_marker,
+                     markersize=agents_size,
+                     alpha=agents_alpha,
+                     linestyle='None'),
+        lines.Line2D([], [],
+                     label='Repeatedly Rerouted Agents',
+                     color=repeatedly_rerouted_agents_color,
+                     marker=agents_marker,
+                     markersize=agents_size,
+                     alpha=agents_alpha,
+                     linestyle='None'),
+        lines.Line2D([], [],
                      label='Targets',
                      color=targets_color,
                      marker=targets_marker,
@@ -80,17 +96,24 @@ def create_movie(in_path: str, out_path: str, fps: int = 5):
     ])
     with writer.saving(f, out_path, f.dpi):
         start = nodes.loc[agent_df[agent_df.Step == 0].position]
-        line = ax.scatter(start.geometry.x, start.geometry.y,
-                          marker=agents_marker, s=agents_size, alpha=agents_alpha, color=agents_color)
+        agents = ax.scatter(start.geometry.x, start.geometry.y,
+                            marker=agents_marker, s=agents_size, alpha=agents_alpha, color=agents_color)
 
         targets = ax.scatter(target_nodes.geometry.x, target_nodes.geometry.y,
-                              color=targets_color, s=targets_size, marker=targets_marker, zorder=4)
+                             color=targets_color, s=targets_size, marker=targets_marker, zorder=4)
 
         for step in model_df.index:
             agents_at_step = agent_df[agent_df.Step == step]
             evacuated_agents = agents_at_step[agents_at_step.status == 1]
             agent_locations = nodes.loc[agents_at_step.position]
-            line.set_offsets(list(zip(agent_locations.geometry.x, agent_locations.geometry.y)))
+            agents.set_offsets(list(zip(agent_locations.geometry.x, agent_locations.geometry.y)))
+            agents.set_color([
+                agents_color if a == 0
+                else rerouted_agents_color if a == 1
+                else repeatedly_rerouted_agents_color
+                for a in agents_at_step.reroute_count
+            ])
+
             occupants = target_nodes.join(
                 evacuated_agents.position.value_counts().rename('occupants')).occupants.replace(float('NaN'), 0)
             occupants = target_nodes.join(occupants).replace(float('NaN'), 0).occupants.values

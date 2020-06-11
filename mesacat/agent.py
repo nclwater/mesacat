@@ -27,6 +27,7 @@ class EvacuationAgent(Agent):
         self.pos = 0
         self.evacuated = False
         self.stranded = False
+        self.reroute_count = -1
 
     def update_route(self):
         """Updates the agent's route to the target node"""
@@ -45,6 +46,7 @@ class EvacuationAgent(Agent):
 
         self.route = self.model.nodes.iloc[path].index
         self.route_index = 0
+        self.reroute_count += 1
 
     def distance_to_next_node(self):
         """Finds the distance to the next node along the route"""

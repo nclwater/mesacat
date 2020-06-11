@@ -147,6 +147,7 @@ class EvacuationModel(Model):
                 'stranded': stranded
             },
             agent_reporters={'position': 'pos',
+                             'reroute_count': 'reroute_count',
                              'status': status})
 
     def step(self):
