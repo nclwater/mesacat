@@ -106,7 +106,7 @@ def create_movie(in_path: str, out_path: str, fps: int = 5):
             agents_at_step = agent_df[agent_df.Step == step]
             evacuated_agents = agents_at_step[agents_at_step.status == 1]
             agent_locations = nodes.loc[agents_at_step.position]
-            agents.set_offsets(list(zip(agent_locations.geometry.x, agent_locations.geometry.y)))
+            agents.set_offsets(agents_at_step[['lon', 'lat']].values)
             agents.set_color([
                 agents_color if a == 0
                 else rerouted_agents_color if a == 1

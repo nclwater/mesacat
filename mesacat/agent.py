@@ -28,6 +28,20 @@ class EvacuationAgent(Agent):
         self.evacuated = False
         self.stranded = False
         self.reroute_count = -1
+        self.lat = None
+        self.lon = None
+
+    def update_location(self):
+        total_distance = self.distance_to_next_node() + self.distance_along_edge
+        origin_node = self.model.nodes.loc[self.route[self.route_index]]
+        if total_distance == 0:
+            self.lat = origin_node.geometry.y
+            self.lon = origin_node.geometry.x
+        else:
+            k = self.distance_along_edge / total_distance
+            destination_node = self.model.nodes.loc[self.route[self.route_index + 1]]
+            self.lat = k * destination_node.geometry.y + (1 - k) * origin_node.geometry.y
+            self.lon = k * destination_node.geometry.x + (1 - k) * origin_node.geometry.x
 
     def update_route(self):
         """Updates the agent's route to the target node"""
@@ -63,13 +77,14 @@ class EvacuationAgent(Agent):
 
         # If new node is reached
         while distance_to_travel >= self.distance_to_next_node():
-            self.distance_along_edge = 0
             distance_to_travel -= self.distance_to_next_node()
             self.route_index += 1
             self.model.grid.move_agent(self, self.route[self.route_index])
 
             # If target is reached
             if self.route_index == len(self.route) - 1:
+                self.lat = self.model.nodes.loc[self.pos].geometry.y
+                self.lon = self.model.nodes.loc[self.pos].geometry.x
                 # If target is at capacity
                 if len(self.model.grid.get_cell_list_contents([self.pos])) > self.model.target_capacity:
                     self.model.target_nodes = self.model.target_nodes[self.model.target_nodes.values != self.pos]
@@ -81,5 +96,8 @@ class EvacuationAgent(Agent):
                     self.evacuated = True
                     return
 
+            self.distance_along_edge = 0
+
         # If new node is not reached
         self.distance_along_edge += distance_to_travel
+        self.update_location()

@@ -140,6 +140,7 @@ class EvacuationModel(Model):
             self.schedule.add(a)
             self.grid.place_agent(a, self.nodes.index[idx])
             a.update_route()
+            a.update_location()
 
         self.data_collector = DataCollector(
             model_reporters={
@@ -148,6 +149,8 @@ class EvacuationModel(Model):
             },
             agent_reporters={'position': 'pos',
                              'reroute_count': 'reroute_count',
+                             'lat': 'lat',
+                             'lon': 'lon',
                              'status': status})
 
     def step(self):
