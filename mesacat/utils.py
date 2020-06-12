@@ -4,6 +4,7 @@ import osmnx
 from matplotlib import animation, lines
 from matplotlib.patches import Patch
 import networkx as nx
+import matplotlib.pyplot as plt
 
 
 def create_movie(in_path: str, out_path: str, fps: int = 5):
@@ -14,9 +15,7 @@ def create_movie(in_path: str, out_path: str, fps: int = 5):
         out_path: path to movie file
         fps: frames per second of the video
     """
-
-    agent_df = pd.read_csv(in_path + '.agent.csv')
-    model_df = pd.read_csv(in_path + '.model.csv')
+    agent_df, model_df, graph, nodes, hazard, target_nodes = read_model(in_path)
 
     writer = animation.writers['ffmpeg']
     metadata = dict(title='Movie Test', artist='Matplotlib', comment='Movie support!')
@@ -36,18 +35,8 @@ def create_movie(in_path: str, out_path: str, fps: int = 5):
     agents_alpha = 1
     edge_color = '#999999'
 
-    graph = nx.read_gml(in_path + '.gml')
-    nodes, _ = osmnx.save_load.graph_to_gdfs(graph)
-    nodes.index = nodes.index.astype('int64')
-
     # Road network
     f, ax = osmnx.plot_graph(graph, show=False, dpi=200, node_size=0, edge_color=edge_color, edge_linewidth=0.5)
-
-    geopackage = in_path + '.gpkg'
-
-    hazard = gpd.read_file(geopackage, layer='hazard')
-    target_nodes = gpd.read_file(geopackage, layer='targets')
-    target_nodes = target_nodes.set_index(target_nodes.osmid.astype('int64'))
 
     # Flood hazard zone
     hazard.plot(ax=ax, alpha=hazard_alpha, color=hazard_color)
@@ -95,7 +84,7 @@ def create_movie(in_path: str, out_path: str, fps: int = 5):
                      linestyle='-')
     ])
     with writer.saving(f, out_path, f.dpi):
-        start = nodes.loc[agent_df[agent_df.Step == 0].position]
+        start = nodes.loc[agent_df.loc[[0]].position]
         agents = ax.scatter(start.geometry.x, start.geometry.y,
                             marker=agents_marker, s=agents_size, alpha=agents_alpha, color=agents_color)
 
@@ -103,7 +92,7 @@ def create_movie(in_path: str, out_path: str, fps: int = 5):
                              color=targets_color, s=targets_size, marker=targets_marker, zorder=4)
 
         for step in model_df.index:
-            agents_at_step = agent_df[agent_df.Step == step]
+            agents_at_step = agent_df.loc[[step]]
             evacuated_agents = agents_at_step[agents_at_step.status == 1]
             agent_locations = nodes.loc[agents_at_step.position]
             agents.set_offsets(agents_at_step[['lon', 'lat']].values)
@@ -115,8 +104,7 @@ def create_movie(in_path: str, out_path: str, fps: int = 5):
             ])
 
             occupants = target_nodes.join(
-                evacuated_agents.position.value_counts().rename('occupants')).occupants.replace(float('NaN'), 0)
-            occupants = target_nodes.join(occupants).replace(float('NaN'), 0).occupants.values
+                evacuated_agents.position.value_counts().rename('occupants')).occupants.replace(float('NaN'), 0).values
             targets.set_sizes(occupants)
             targets.set_color([targets_color if o < 100 else targets_at_capacity_color for o in occupants])
             evacuated_total = model_df.evacuated.loc[step]
@@ -131,3 +119,30 @@ def create_movie(in_path: str, out_path: str, fps: int = 5):
                 stranded / len(agent_locations) * 100
             ))
             writer.grab_frame()
+
+
+def target_occupancy_plot(in_path, out_path):
+    agent_df, model_df, graph, nodes, hazard, target_nodes = read_model(in_path)
+    f, ax = plt.subplots()
+
+    evacuated = agent_df[agent_df.status == 1]
+    evacuated.groupby([evacuated.index, 'position']).count().AgentID.rename('occupancy').reset_index().pivot(
+        values='occupancy', columns='position', index='Step').plot(ax=ax)
+    f.savefig(out_path)
+
+
+def read_model(path):
+    agent_df = pd.read_csv(path + '.agent.csv', index_col='Step')
+    model_df = pd.read_csv(path + '.model.csv')
+
+    graph = nx.read_gml(path + '.gml')
+    nodes, _ = osmnx.save_load.graph_to_gdfs(graph)
+    nodes.index = nodes.index.astype('int64')
+
+    geopackage = path + '.gpkg'
+
+    hazard = gpd.read_file(geopackage, layer='hazard')
+    target_nodes = gpd.read_file(geopackage, layer='targets')
+    target_nodes = target_nodes.set_index(target_nodes.osmid.astype('int64'))
+
+    return agent_df, model_df, graph, nodes, hazard, target_nodes
