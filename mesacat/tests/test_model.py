@@ -15,10 +15,10 @@ extents = extents[(extents.threshold == 0.1) & (extents.rainfall == 20) &
 
 class TestEvacuationModel(TestCase):
 
-    # def test_model_download(self):
-    #     domain = gpd.read_file(os.path.join(sample_data, 'bwaise-small.gpkg')).geometry[0]
-    #     EvacuationModel(domain=domain, output_path=os.path.join(outputs, 'download'),
-    #                     seed=1, hazard=extents)
+    def test_model_download(self):
+        domain = gpd.read_file(os.path.join(sample_data, 'bwaise-small.gpkg')).geometry[0]
+        EvacuationModel(domain=domain, output_path=os.path.join(outputs, 'download'),
+                        seed=1, hazard=extents)
 
     def test_model_run(self):
         import networkx as nx

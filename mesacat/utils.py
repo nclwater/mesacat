@@ -126,19 +126,27 @@ def create_plot(in_path, out_path):
     agent_df, model_df, graph, nodes, edges, hazard, target_nodes = read_model(in_path)
     gs = GridSpec(2, 2, width_ratios=[30, 1])
 
-    f = plt.figure( figsize=(8, 8))
+    f = plt.figure(figsize=(8, 8))
     top_ax = f.add_subplot(gs[0, :])
-    bottom_ax = f.add_subplot(gs[1, 0])
-    cax = f.add_subplot(gs[1, 1])
 
     evacuated = agent_df[agent_df.status == 1]
-    occupancy = evacuated.groupby([evacuated.index, 'position']).count().AgentID.rename('occupancy').reset_index().pivot(
-        values='occupancy', columns='position', index='Step').rename(columns=target_nodes.name.to_dict())
-    occupancy.set_index(pd.to_timedelta(occupancy.index*10, unit='s')).plot(ax=top_ax, legend=False)
-    top_ax.set_xlabel('Time')
-    top_ax.set_ylabel('Number of Agents Evacuated')
 
-    top_ax.legend(ncol=2, bbox_to_anchor=(0.5, 1.2), loc='center')
+    stranded = agent_df[agent_df.status == 2].groupby('Step').count().AgentID.rename('Stranded')
+    occupancy = evacuated.groupby([evacuated.index, 'position']).count().AgentID.rename(
+        'occupancy').reset_index().pivot(
+        values='occupancy', columns='position', index='Step').rename(columns=target_nodes.name.to_dict())
+    occupancy.join(stranded).set_index(occupancy.index.values * 10 / 60).plot(
+        ax=top_ax, legend=True, secondary_y=[stranded.name])
+    top_ax.set_xlabel('Time (minutes)')
+    top_ax.set_ylabel('Number of Agents Evacuated')
+    top_ax.right_ax.set_ylabel('Number of Agents Stranded')
+    h1, l1 = top_ax.get_legend_handles_labels()
+    h2, l2 = top_ax.right_ax.get_legend_handles_labels()
+    top_ax.legend(h1 + h2, l1 + l2, ncol=2, bbox_to_anchor=(0.5, 1.2), loc='center')
+    top_ax.right_ax.set_xticklabels(top_ax.get_xticks() * 10)
+
+    bottom_ax = f.add_subplot(gs[1, 0])
+    cax = f.add_subplot(gs[1, 1])
     traffic = agent_df[['AgentID', 'highway']].drop_duplicates().groupby('highway').count().AgentID.rename('traffic')
     edges.set_index(edges.osmid.astype(pd.Int64Dtype())).join(traffic).loc[traffic.index.values].plot(
         column='traffic', ax=bottom_ax, cmap='copper_r', legend=True,
