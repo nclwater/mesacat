@@ -1,6 +1,7 @@
 from __future__ import annotations
 from . import model
 from mesa import Agent
+import numpy as np
 import typing
 
 
@@ -30,6 +31,7 @@ class EvacuationAgent(Agent):
         self.reroute_count = -1
         self.lat = None
         self.lon = None
+        self.highway = None
 
     def update_location(self):
         total_distance = self.distance_to_next_node() + self.distance_along_edge
@@ -45,7 +47,6 @@ class EvacuationAgent(Agent):
 
     def update_route(self):
         """Updates the agent's route to the target node"""
-        import numpy as np
         if len(self.model.target_nodes) == 0:
             self.stranded = True
             return
@@ -64,8 +65,10 @@ class EvacuationAgent(Agent):
 
     def distance_to_next_node(self):
         """Finds the distance to the next node along the route"""
-        return self.model.G.get_edge_data(
-            self.route[self.route_index], self.route[self.route_index+1])[0]['length'] - self.distance_along_edge
+        edge = self.model.G.get_edge_data(self.route[self.route_index], self.route[self.route_index + 1])[0]
+        if 'osmid' in edge.keys():
+            self.highway = edge['osmid']
+        return edge['length'] - self.distance_along_edge
 
     def step(self):
         """Moves the agent towards the target node by 10 seconds"""

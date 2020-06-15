@@ -14,6 +14,7 @@ from scipy.spatial import cKDTree
 import numpy as np
 from shapely.geometry import Polygon
 import igraph
+import pandas as pd
 
 
 class EvacuationModel(Model):
@@ -151,6 +152,7 @@ class EvacuationModel(Model):
                              'reroute_count': 'reroute_count',
                              'lat': 'lat',
                              'lon': 'lon',
+                             'highway': 'highway',
                              'status': status})
 
     def step(self):
@@ -175,7 +177,8 @@ class EvacuationModel(Model):
                 for _ in range(5):
                     self.step()
                 break
-        self.data_collector.get_agent_vars_dataframe().to_csv(self.output_path + '.agent.csv')
+        self.data_collector.get_agent_vars_dataframe().astype({'highway': pd.Int64Dtype()}).to_csv(
+            self.output_path + '.agent.csv')
         self.data_collector.get_model_vars_dataframe().to_csv(self.output_path + '.model.csv')
         return self.data_collector.get_agent_vars_dataframe()
 

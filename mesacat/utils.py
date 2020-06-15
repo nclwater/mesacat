@@ -15,7 +15,7 @@ def create_movie(in_path: str, out_path: str, fps: int = 5):
         out_path: path to movie file
         fps: frames per second of the video
     """
-    agent_df, model_df, graph, nodes, hazard, target_nodes = read_model(in_path)
+    agent_df, model_df, graph, nodes, edges, hazard, target_nodes = read_model(in_path)
 
     writer = animation.writers['ffmpeg']
     metadata = dict(title='Movie Test', artist='Matplotlib', comment='Movie support!')
@@ -122,7 +122,7 @@ def create_movie(in_path: str, out_path: str, fps: int = 5):
 
 
 def target_occupancy_plot(in_path, out_path):
-    agent_df, model_df, graph, nodes, hazard, target_nodes = read_model(in_path)
+    agent_df, model_df, graph, nodes, edges, hazard, target_nodes = read_model(in_path)
     f, ax = plt.subplots()
 
     evacuated = agent_df[agent_df.status == 1]
@@ -131,12 +131,23 @@ def target_occupancy_plot(in_path, out_path):
     f.savefig(out_path)
 
 
+def traffic_plot(in_path, out_path):
+    agent_df, model_df, graph, nodes, edges, hazard, target_nodes = read_model(in_path)
+    f, ax = plt.subplots()
+
+    traffic = agent_df[['AgentID', 'highway']].drop_duplicates().groupby('highway').count().AgentID.rename('traffic')
+    for threshold in [1, 50, 100, 200]:
+        edges.set_index(edges.osmid.astype(pd.Int64Dtype())).loc[
+            traffic[traffic > threshold].index.values].plot(ax=ax, linewidth=threshold/100 + 1)
+    f.savefig(out_path)
+
+
 def read_model(path):
-    agent_df = pd.read_csv(path + '.agent.csv', index_col='Step')
+    agent_df = pd.read_csv(path + '.agent.csv', index_col='Step', dtype={'highway': pd.Int64Dtype()})
     model_df = pd.read_csv(path + '.model.csv')
 
     graph = nx.read_gml(path + '.gml')
-    nodes, _ = osmnx.save_load.graph_to_gdfs(graph)
+    nodes, edges = osmnx.save_load.graph_to_gdfs(graph)
     nodes.index = nodes.index.astype('int64')
 
     geopackage = path + '.gpkg'
@@ -145,4 +156,4 @@ def read_model(path):
     target_nodes = gpd.read_file(geopackage, layer='targets')
     target_nodes = target_nodes.set_index(target_nodes.osmid.astype('int64'))
 
-    return agent_df, model_df, graph, nodes, hazard, target_nodes
+    return agent_df, model_df, graph, nodes, edges, hazard, target_nodes
