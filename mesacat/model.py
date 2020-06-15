@@ -105,7 +105,7 @@ class EvacuationModel(Model):
         targets_in_hazard_zone = targets_in_hazard_zone.loc[~targets_in_hazard_zone.index.duplicated(keep='first')]
 
         targets_outside_hazard_zone = targets[~targets.index.isin(targets_in_hazard_zone.index.values)]
-        targets_outside_hazard_zone[['osmid', 'geometry']].to_file(output_gpkg, layer='targets', driver=driver)
+        targets_outside_hazard_zone.to_file(output_gpkg, layer='targets', driver=driver)
 
         assert len(targets_outside_hazard_zone) > 0, 'There are no targets outside the hazard zone'
 

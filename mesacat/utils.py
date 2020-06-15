@@ -5,6 +5,7 @@ from matplotlib import animation, lines
 from matplotlib.patches import Patch
 import networkx as nx
 import matplotlib.pyplot as plt
+from matplotlib.gridspec import GridSpec
 
 
 def create_movie(in_path: str, out_path: str, fps: int = 5):
@@ -121,25 +122,34 @@ def create_movie(in_path: str, out_path: str, fps: int = 5):
             writer.grab_frame()
 
 
-def target_occupancy_plot(in_path, out_path):
+def create_plot(in_path, out_path):
     agent_df, model_df, graph, nodes, edges, hazard, target_nodes = read_model(in_path)
-    f, ax = plt.subplots()
+    gs = GridSpec(2, 2, width_ratios=[30, 1])
+
+    f = plt.figure( figsize=(8, 8))
+    top_ax = f.add_subplot(gs[0, :])
+    bottom_ax = f.add_subplot(gs[1, 0])
+    cax = f.add_subplot(gs[1, 1])
 
     evacuated = agent_df[agent_df.status == 1]
-    evacuated.groupby([evacuated.index, 'position']).count().AgentID.rename('occupancy').reset_index().pivot(
-        values='occupancy', columns='position', index='Step').plot(ax=ax)
-    f.savefig(out_path)
+    occupancy = evacuated.groupby([evacuated.index, 'position']).count().AgentID.rename('occupancy').reset_index().pivot(
+        values='occupancy', columns='position', index='Step').rename(columns=target_nodes.name.to_dict())
+    occupancy.set_index(pd.to_timedelta(occupancy.index*10, unit='s')).plot(ax=top_ax, legend=False)
+    top_ax.set_xlabel('Time')
+    top_ax.set_ylabel('Number of Agents Evacuated')
 
-
-def traffic_plot(in_path, out_path):
-    agent_df, model_df, graph, nodes, edges, hazard, target_nodes = read_model(in_path)
-    f, ax = plt.subplots()
-
+    top_ax.legend(ncol=2, bbox_to_anchor=(0.5, 1.2), loc='center')
     traffic = agent_df[['AgentID', 'highway']].drop_duplicates().groupby('highway').count().AgentID.rename('traffic')
-    for threshold in [1, 50, 100, 200]:
-        edges.set_index(edges.osmid.astype(pd.Int64Dtype())).loc[
-            traffic[traffic > threshold].index.values].plot(ax=ax, linewidth=threshold/100 + 1)
-    f.savefig(out_path)
+    edges.set_index(edges.osmid.astype(pd.Int64Dtype())).join(traffic).loc[traffic.index.values].plot(
+        column='traffic', ax=bottom_ax, cmap='copper_r', legend=True,
+        legend_kwds={'label': 'Traffic', 'cax': cax})
+
+    target_nodes.plot(ax=bottom_ax, color=plt.rcParams['axes.prop_cycle'].by_key()['color'][:len(target_nodes)])
+
+    bottom_ax.set_xlabel('Latitude')
+    bottom_ax.set_ylabel('Longitude')
+
+    f.savefig(out_path, bbox_inches='tight')
 
 
 def read_model(path):
