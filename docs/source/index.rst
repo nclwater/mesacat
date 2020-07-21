@@ -10,6 +10,10 @@ Mesacat Documentation
    :maxdepth: 2
    :caption: Contents:
 
+.. raw:: html
+
+   <video width="600" controls><source src="bwaise-reroute-count.mp4" type="video/mp4">Your browser does not support the video tag.</video>
+
 Module contents
 ---------------
 
